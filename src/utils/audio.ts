@@ -64,6 +64,109 @@ class SoundManager {
     osc.stop(now + 0.25);
   }
 
+  // Thunderous Persian Dohol War Drum (دهل سنگین رزم)
+  public playDohol(pitch: number = 65) {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(pitch, now);
+    osc.frequency.exponentialRampToValueAtTime(28, now + 0.35);
+
+    gain.gain.setValueAtTime(0.55, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.38);
+  }
+
+  // Golden Deflect / Parry Chime (دفع تیغ و پری بی‌نقص)
+  public playParrySuccess() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const freqs = [1200, 1800, 2400];
+    freqs.forEach((f, i) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, now);
+      osc.frequency.exponentialRampToValueAtTime(f * 1.5, now + 0.2);
+
+      gain.gain.setValueAtTime(0.25 / (i + 1), now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.4);
+    });
+  }
+
+  // Celestial Simurgh Call & Chime (آوای سیمرغ)
+  public playSimurghAura() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const chord = [523.25, 659.25, 783.99, 1046.5]; // C Maj
+    chord.forEach((freq, idx) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.05, now + 0.6);
+
+      gain.gain.setValueAtTime(0.2, now + idx * 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+
+      osc.start(now + idx * 0.06);
+      osc.stop(now + 0.8);
+    });
+  }
+
+  // Persian Sorna / Horn Fanfare (سرنای جنگی)
+  public playSornaTone(freq: number = 587.33, duration: number = 0.22) {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.linearRampToValueAtTime(freq * 1.02, now + duration * 0.5);
+    osc.frequency.linearRampToValueAtTime(freq, now + duration);
+
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
   // Sword slash whoosh
   public playSlash(pitchMultiplier: number = 1.0) {
     if (this.isMuted) return;

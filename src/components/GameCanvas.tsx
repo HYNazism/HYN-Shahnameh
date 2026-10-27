@@ -4,7 +4,7 @@ import { GameEngine } from '../game/GameEngine';
 import { TRANSLATIONS } from '../constants/translations';
 import { MobileControls } from './MobileControls';
 import { GraphicsSelector } from './GraphicsSelector';
-import { Pause, Play, Volume2, VolumeX, ShieldAlert, Zap, BookOpen, X, Scroll } from 'lucide-react';
+import { Pause, Play, Volume2, VolumeX, ShieldAlert, Zap, BookOpen, X, Scroll, Flame, Swords } from 'lucide-react';
 import { sound } from '../utils/audio';
 
 interface Props {
@@ -15,6 +15,7 @@ interface Props {
   weaponBonusDamage: number;
   armorDamageReduction: number;
   hasSimurghBoots: boolean;
+  hasSimurghFeather?: boolean;
   lang: Language;
   onGameOver: (score: number, gold: number, gems: number) => void;
   onVictory: (score: number, gold: number, gems: number) => void;
@@ -31,6 +32,7 @@ export const GameCanvas: React.FC<Props> = ({
   weaponBonusDamage,
   armorDamageReduction,
   hasSimurghBoots,
+  hasSimurghFeather = false,
   lang,
   onGameOver,
   onVictory,
@@ -42,7 +44,7 @@ export const GameCanvas: React.FC<Props> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<GameEngine | null>(null);
 
-  // HUD State
+  // Vitality & Telemetry HUD State
   const [hp, setHp] = useState(hero.maxHp);
   const [maxHp, setMaxHp] = useState(hero.maxHp);
   const [rage, setRage] = useState(0);
@@ -107,10 +109,11 @@ export const GameCanvas: React.FC<Props> = ({
     );
 
     engineRef.current = engine;
+    engine.hasSimurghFeather = hasSimurghFeather;
     engine.start();
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (['Space', 'KeyA', 'KeyD', 'KeyJ', 'KeyK', 'KeyL', 'ArrowLeft', 'ArrowRight', 'ArrowUp'].includes(e.code)) {
+      if (['Space', 'KeyA', 'KeyD', 'KeyJ', 'KeyK', 'KeyL', 'KeyC', 'ArrowLeft', 'ArrowRight', 'ArrowUp'].includes(e.code)) {
         e.preventDefault();
       }
 
@@ -120,6 +123,7 @@ export const GameCanvas: React.FC<Props> = ({
       if (e.code === 'KeyJ') engine.input.attack = true;
       if (e.code === 'KeyK') engine.input.quickAttack = true;
       if (e.code === 'KeyL') engine.input.special = true;
+      if (e.code === 'KeyC') engine.input.parry = true;
       if (e.code === 'Escape') {
         const paused = engine.togglePause();
         setIsPaused(paused);
@@ -133,6 +137,7 @@ export const GameCanvas: React.FC<Props> = ({
       if (e.code === 'KeyJ') engine.input.attack = false;
       if (e.code === 'KeyK') engine.input.quickAttack = false;
       if (e.code === 'KeyL') engine.input.special = false;
+      if (e.code === 'KeyC') engine.input.parry = false;
     };
 
     const handleBlur = () => {
@@ -142,6 +147,7 @@ export const GameCanvas: React.FC<Props> = ({
       engine.input.attack = false;
       engine.input.quickAttack = false;
       engine.input.special = false;
+      engine.input.parry = false;
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -190,33 +196,38 @@ export const GameCanvas: React.FC<Props> = ({
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#070b14] overflow-hidden select-none">
       {/* Top HUD Cluster */}
-      <div className="absolute top-3 inset-x-4 flex items-center justify-between pointer-events-none z-20">
-        {/* Left: Player Vitality & Farreh */}
-        <div className="flex flex-col gap-1.5 pointer-events-auto bg-slate-950/80 p-2.5 rounded-xl border border-amber-500/30 shadow-xl backdrop-blur-md min-w-[210px]">
-          <div className="flex items-center justify-between text-xs font-semibold">
+      <div className="absolute top-3 inset-x-3 md:inset-x-6 flex items-start justify-between pointer-events-none z-20">
+        {/* Left: Player Vitality & Farreh Frame */}
+        <div className="flex flex-col gap-1.5 pointer-events-auto bg-slate-950/85 p-3 rounded-2xl border border-amber-500/35 shadow-2xl backdrop-blur-md min-w-[210px] md:min-w-[240px]">
+          <div className="flex items-center justify-between text-xs font-bold">
             <span className="text-amber-300 flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: hero.color }} />
-              {t[hero.nameKey]}
+              <span className="w-2.5 h-2.5 rounded-full ring-2 ring-amber-500/40" style={{ backgroundColor: hero.color }} />
+              <span>{t[hero.nameKey]}</span>
             </span>
-            <span className="text-slate-300 font-mono tabular-nums text-[11px]">
+            <span className="text-slate-300 font-mono tabular-nums text-xs">
               {hp} / {maxHp}
             </span>
           </div>
 
-          <div className="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-slate-700">
+          {/* Health Gauge with Segments */}
+          <div className="w-full bg-slate-900 rounded-lg h-3 overflow-hidden border border-slate-700/80 p-0.5 shadow-inner">
             <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-150"
+              className="h-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-400 rounded transition-all duration-150"
               style={{ width: `${hpPercentage}%` }}
             />
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-amber-200 mt-0.5">
-            <span>{t.rage_farreh}</span>
-            <span className="font-mono tabular-nums">{rage}%</span>
+          {/* Farreh (Rage) Gauge */}
+          <div className="flex items-center justify-between text-[11px] text-amber-200 mt-0.5 font-medium">
+            <span className="flex items-center gap-1 text-amber-300">
+              <Flame className="w-3.5 h-3.5 text-amber-400" />
+              <span>{t.rage_farreh}</span>
+            </span>
+            <span className="font-mono tabular-nums font-bold">{rage}%</span>
           </div>
-          <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+          <div className="w-full bg-slate-900 rounded-lg h-2 overflow-hidden border border-amber-900/40 p-0.5 shadow-inner">
             <div
-              className="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-300 transition-all duration-100"
+              className="h-full bg-gradient-to-r from-amber-600 via-orange-500 to-yellow-400 rounded transition-all duration-100"
               style={{ width: `${ragePercentage}%` }}
             />
           </div>
@@ -224,40 +235,48 @@ export const GameCanvas: React.FC<Props> = ({
 
         {/* Center: Boss HP Bar if active */}
         {bossHp !== undefined && bossMaxHp !== undefined && bossHp > 0 && (
-          <div className="pointer-events-auto flex flex-col items-center gap-1 bg-red-950/85 px-4 py-2 rounded-xl border border-red-500/60 shadow-2xl backdrop-blur-md max-w-sm w-full mx-4 animate-pulse">
-            <div className="flex items-center gap-2 text-xs font-bold text-red-200">
-              <ShieldAlert className="w-4 h-4 text-red-400" />
-              <span>{t[stage.bossNameKey]}</span>
-              <span className="font-mono tabular-nums text-red-300 text-[11px]">({bossHp} / {bossMaxHp})</span>
+          <div className="pointer-events-auto flex flex-col items-center gap-1.5 bg-red-950/90 px-4 py-2.5 rounded-2xl border border-red-500/70 shadow-2xl backdrop-blur-md max-w-sm w-full mx-2 md:mx-4 animate-fadeIn">
+            <div className="flex items-center justify-between w-full text-xs font-bold text-red-200">
+              <div className="flex items-center gap-1.5">
+                <ShieldAlert className="w-4 h-4 text-red-400" />
+                <span>{t[stage.bossNameKey]}</span>
+              </div>
+              <span className="font-mono tabular-nums text-red-300 text-xs">
+                {bossHp} / {bossMaxHp}
+              </span>
             </div>
-            <div className="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-red-700">
+
+            <div className="w-full bg-slate-950 rounded-lg h-2.5 overflow-hidden border border-red-800 p-0.5">
               <div
-                className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 transition-all duration-150"
+                className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 rounded transition-all duration-150"
                 style={{ width: `${Math.max(0, (bossHp / bossMaxHp) * 100)}%` }}
               />
             </div>
+
             {onStartBossDuel && (
               <button
                 onClick={() => {
                   const bossId = stage.id === 3 ? 'div_sepid' : stage.id === 4 ? 'sohrab' : stage.id === 5 ? 'esfandiar' : 'div_sepid';
                   onStartBossDuel(bossId);
                 }}
-                className="mt-1 px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-[10px] rounded-lg shadow-md flex items-center gap-1 cursor-pointer transition-transform active:scale-95"
+                className="mt-1 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-[11px] rounded-lg shadow-md flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95 border border-amber-300/40"
               >
-                <span>⚔️ دوئل سینمایی تن‌به‌تن با فرمانده (قفل تیغه‌ها)</span>
+                <Swords className="w-3.5 h-3.5" />
+                <span>دوئل تن‌به‌تن با هماورد (قفل تیغه‌ها)</span>
               </button>
             )}
           </div>
         )}
 
         {/* Right: Gold, Gems & Controls */}
-        <div className="flex items-center gap-3 pointer-events-auto">
-          <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-950/80 rounded-xl border border-slate-700 shadow-md backdrop-blur-md">
-            <div className="flex items-center gap-1 text-xs text-amber-400 font-bold">
+        <div className="flex items-center gap-2 pointer-events-auto">
+          <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-950/85 rounded-xl border border-amber-500/30 shadow-md backdrop-blur-md">
+            <div className="flex items-center gap-1.5 text-xs text-amber-400 font-bold">
               <span>🪙</span>
               <span className="font-mono tabular-nums">{runGold}</span>
             </div>
-            <div className="flex items-center gap-1 text-xs text-sky-400 font-bold">
+            <span className="text-slate-700">|</span>
+            <div className="flex items-center gap-1.5 text-xs text-sky-400 font-bold">
               <span>💎</span>
               <span className="font-mono tabular-nums">{runGems}</span>
             </div>
@@ -265,26 +284,28 @@ export const GameCanvas: React.FC<Props> = ({
 
           <button
             onClick={handleToggleSound}
-            className="p-2 bg-slate-900/90 hover:bg-slate-800 text-amber-400 border border-slate-700 rounded-xl transition-colors cursor-pointer"
+            className="p-2 bg-slate-900/90 hover:bg-slate-800 text-amber-400 border border-slate-700/80 rounded-xl transition-colors cursor-pointer"
             title={isMuted ? t.sound_off : t.sound_on}
+            aria-label="Sound Toggle"
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-slate-500" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
           </button>
 
           <button
             onClick={handleTogglePause}
-            className="p-2 bg-slate-900/90 hover:bg-slate-800 text-amber-400 border border-slate-700 rounded-xl transition-colors cursor-pointer"
+            className="p-2 bg-slate-900/90 hover:bg-slate-800 text-amber-400 border border-slate-700/80 rounded-xl transition-colors cursor-pointer"
             title={isPaused ? t.resume : t.pause}
+            aria-label="Pause Toggle"
           >
             {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
-      {/* Floating Combo Counter Gauge */}
+      {/* Dynamic Floating Combo Counter Gauge */}
       {comboCount > 1 && (
-        <div className="absolute top-20 left-6 z-20 pointer-events-none animate-bounce">
-          <div className="px-3.5 py-1.5 bg-gradient-to-r from-amber-600 to-amber-500 border border-amber-300 rounded-xl shadow-2xl flex items-center gap-2 text-slate-950 font-black text-xs md:text-sm">
+        <div className="absolute top-20 left-4 md:left-6 z-20 pointer-events-none animate-fadeInScale">
+          <div className="px-3.5 py-1.5 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 border border-amber-300 rounded-xl shadow-2xl flex items-center gap-2 text-slate-950 font-black text-xs md:text-sm">
             <Zap className="w-4 h-4 fill-slate-950" />
             <span>{t.combo_label} x{comboCount}</span>
             <span className="bg-slate-950 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold">
@@ -297,8 +318,8 @@ export const GameCanvas: React.FC<Props> = ({
       {/* In-Battle Story Waypoint Narrative Subtitle Banner */}
       {inBattleSubtitle && (
         <div className="absolute top-20 inset-x-4 max-w-xl mx-auto z-25 pointer-events-none animate-fadeIn">
-          <div className="bg-slate-950/90 border border-amber-500/80 px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur-md text-center flex items-center justify-center gap-2.5">
-            <Scroll className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+          <div className="bg-slate-950/95 border border-amber-500/70 px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur-md text-center flex items-center justify-center gap-2.5">
+            <Scroll className="w-4 h-4 text-amber-400 shrink-0" />
             <p className="text-xs md:text-sm text-amber-100 italic font-medium leading-relaxed">
               {inBattleSubtitle}
             </p>
@@ -343,7 +364,7 @@ export const GameCanvas: React.FC<Props> = ({
         />
 
         <div className="hidden md:flex absolute bottom-3 inset-x-0 justify-center pointer-events-none z-10">
-          <div className="px-4 py-1.5 bg-slate-950/80 border border-slate-800/80 rounded-full text-xs text-slate-400 font-mono tracking-wide shadow-lg backdrop-blur-sm">
+          <div className="px-4 py-1.5 bg-slate-950/85 border border-slate-800 rounded-xl text-xs text-slate-400 font-mono tracking-wide shadow-lg backdrop-blur-sm">
             {t.controls_hint}
           </div>
         </div>
@@ -358,8 +379,8 @@ export const GameCanvas: React.FC<Props> = ({
       {/* Pause Modal Overlay */}
       {isPaused && (
         <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-amber-500/50 p-6 rounded-2xl max-w-sm w-full text-center shadow-2xl flex flex-col gap-4">
-            <h2 className="text-2xl font-bold text-amber-400 tracking-wide">{t.pause}</h2>
+          <div className="bg-[#0b101e] border border-amber-500/50 p-6 rounded-2xl max-w-sm w-full text-center shadow-2xl flex flex-col gap-4 animate-fadeInScale">
+            <h2 className="text-2xl font-black text-amber-400 tracking-wide">{t.pause}</h2>
             <p className="text-xs text-slate-300 leading-relaxed">{t[stage.descKey]}</p>
 
             {/* In-game Graphics Quality Selector */}

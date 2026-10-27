@@ -1,5 +1,5 @@
 import React from 'react';
-import { HeroDef, HeroId, StageDef, PlayerProgress, Language, GraphicsTier } from '../types/game';
+import { HeroId, PlayerProgress, Language, GraphicsTier } from '../types/game';
 import { HEROES, STAGES } from '../constants/gameData';
 import { TRANSLATIONS } from '../constants/translations';
 import { LanguageSelector } from './LanguageSelector';
@@ -18,6 +18,10 @@ import {
   Play,
   CheckCircle2,
   Swords,
+  Sparkles,
+  Flame,
+  Award,
+  ChevronLeft,
 } from 'lucide-react';
 import { sound } from '../utils/audio';
 
@@ -39,6 +43,9 @@ interface Props {
   onOpenDevDashboard: () => void;
   onOpenDailyQuests: () => void;
   onOpenPlayerStore: () => void;
+  onOpenEpisodes?: () => void;
+  onOpenSkillTree?: () => void;
+  onOpenNaqqal?: () => void;
 }
 
 export const TitleScreen: React.FC<Props> = ({
@@ -59,6 +66,9 @@ export const TitleScreen: React.FC<Props> = ({
   onOpenDevDashboard,
   onOpenDailyQuests,
   onOpenPlayerStore,
+  onOpenEpisodes,
+  onOpenSkillTree,
+  onOpenNaqqal,
 }) => {
   const t = TRANSLATIONS[lang];
   const [isMuted, setIsMuted] = React.useState(sound.getIsMuted());
@@ -70,45 +80,58 @@ export const TitleScreen: React.FC<Props> = ({
     setIsMuted(muted);
   };
 
-  const activeDailyQuestsCount = progress.dailyQuests.filter(q => !q.isClaimed).length;
+  const activeQuestsCount = progress.dailyQuests.filter(q => !q.isClaimed).length;
+  const completedStagesCount = progress.completedStages.length;
 
   return (
     <div className="relative w-full min-h-screen bg-[#070a14] text-slate-100 flex flex-col justify-between overflow-x-hidden p-3 md:p-6 select-none">
-      {/* Top Bar: Brand, Vault & Tools */}
-      <header className="w-full max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4 py-2 border-b border-slate-800/80">
+      {/* Subtle Background Ornamentation */}
+      <div className="absolute inset-0 pointer-events-none opacity-20 bg-[radial-gradient(circle_at_50%_0%,rgba(212,175,55,0.15),transparent_65%)]" />
+
+      {/* Top Header Bar */}
+      <header className="relative z-10 w-full max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-amber-500/20">
+        {/* Brand & Crest */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center font-bold text-slate-950 shadow-md text-xl">
-            ⚔️
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 via-amber-600 to-yellow-600 p-0.5 shadow-lg shadow-amber-500/10">
+            <div className="w-full h-full bg-[#080d1a] rounded-[10px] flex items-center justify-center text-xl">
+              ⚔️
+            </div>
           </div>
           <div>
-            <h1 className="text-lg md:text-xl font-black tracking-tight text-amber-400">
-              {t.app_title}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg md:text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400">
+                {t.app_title}
+              </h1>
+              <span className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded">
+                v2.5 حماسی
+              </span>
+            </div>
             <p className="text-[11px] text-slate-400 font-medium">
-              {t.game_subtitle}
+              {t.game_subtitle} · اقتباس اصیل از شاهنامه فردوسی
             </p>
           </div>
         </div>
 
-        {/* Currency Vault & Controls */}
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-semibold shadow-inner">
+        {/* Currency Vault & System Controls */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-900/90 border border-amber-500/30 rounded-xl text-xs font-semibold shadow-inner backdrop-blur-md">
             <div className="flex items-center gap-1.5 text-amber-400">
-              <span>🪙</span>
-              <span className="font-mono tabular-nums">{progress.gold}</span>
-              <span className="text-[10px] text-slate-400">{t.gold}</span>
+              <span className="text-sm">🪙</span>
+              <span className="font-mono tabular-nums font-bold">{progress.gold.toLocaleString()}</span>
+              <span className="text-[10px] text-slate-400 hidden sm:inline">{t.gold}</span>
             </div>
             <span className="text-slate-700">|</span>
             <div className="flex items-center gap-1.5 text-sky-400">
-              <span>💎</span>
-              <span className="font-mono tabular-nums">{progress.gems}</span>
-              <span className="text-[10px] text-slate-400">{t.gems}</span>
+              <span className="text-sm">💎</span>
+              <span className="font-mono tabular-nums font-bold">{progress.gems.toLocaleString()}</span>
+              <span className="text-[10px] text-slate-400 hidden sm:inline">{t.gems}</span>
             </div>
             {progress.isVipBenefactor && (
               <>
                 <span className="text-slate-700">|</span>
-                <span className="text-amber-300 text-[10px] font-bold">
-                  👑 حامی
+                <span className="text-amber-300 text-[11px] font-bold flex items-center gap-1">
+                  <span>👑</span>
+                  <span className="hidden sm:inline">حامی سلطنتی</span>
                 </span>
               </>
             )}
@@ -122,8 +145,9 @@ export const TitleScreen: React.FC<Props> = ({
 
           <button
             onClick={handleToggleSound}
-            className="p-2 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border border-slate-700 rounded-lg transition-colors cursor-pointer"
+            className="p-2 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border border-slate-700/80 rounded-xl transition-colors cursor-pointer"
             title={isMuted ? t.sound_off : t.sound_on}
+            aria-label="Sound Toggle"
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-slate-500" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
           </button>
@@ -132,12 +156,12 @@ export const TitleScreen: React.FC<Props> = ({
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="w-full max-w-6xl mx-auto my-auto py-4 md:py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-        {/* Left Column: Hero Select & Lore (6 cols) */}
-        <div className="lg:col-span-6 flex flex-col gap-4">
-          {/* Hero Tabs */}
-          <div className="flex items-center gap-2 p-1.5 bg-slate-900/80 border border-slate-800 rounded-xl">
+      {/* Main Grid: Hero Showcase + 7 Chapters Map & CTAs */}
+      <main className="relative z-10 w-full max-w-7xl mx-auto my-auto py-4 md:py-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        {/* Left Column: Hero Showcase & Lore (6 cols) */}
+        <section className="lg:col-span-6 flex flex-col gap-3">
+          {/* Hero Selection Tabs */}
+          <div className="grid grid-cols-3 gap-2 p-1 bg-slate-900/80 border border-slate-800 rounded-xl">
             {HEROES.map(hero => {
               const isSelected = hero.id === selectedHeroId;
               return (
@@ -147,101 +171,137 @@ export const TitleScreen: React.FC<Props> = ({
                     onSelectHero(hero.id);
                     sound.playSlash();
                   }}
-                  className={`flex-1 py-2 px-3 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                  className={`py-2 px-2.5 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     isSelected
-                      ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-slate-950 shadow-lg scale-102'
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md font-black'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                   }`}
                 >
                   <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: hero.color }} />
-                  {t[hero.nameKey]}
+                  <span className="truncate">{t[hero.nameKey]}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Hero Lore Card */}
-          <div className="p-5 bg-slate-900/60 border border-slate-800 rounded-2xl relative overflow-hidden backdrop-blur-sm shadow-xl">
+          {/* Hero Card Container */}
+          <div className="flex-1 p-4 md:p-5 bg-gradient-to-b from-slate-900/80 to-[#0a0f1d] border border-amber-500/30 rounded-2xl relative overflow-hidden backdrop-blur-md shadow-2xl flex flex-col justify-between">
+            {/* Ambient Hero Glow */}
             <div
-              className="absolute -top-12 -right-12 w-48 h-48 rounded-full blur-3xl opacity-20 pointer-events-none"
+              className="absolute -top-16 -right-16 w-56 h-56 rounded-full blur-3xl opacity-20 pointer-events-none"
               style={{ backgroundColor: currentHero.color }}
             />
 
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
+            <div>
+              {/* Hero Header */}
+              <div className="flex items-start justify-between pb-3 border-b border-slate-800">
                 <div>
-                  <h2 className="text-xl md:text-2xl font-black text-amber-300">
-                    {t[currentHero.nameKey]}
-                  </h2>
-                  <p className="text-xs text-amber-500/90 font-medium mt-0.5">
-                    {t[currentHero.titleKey]}
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl md:text-2xl font-black text-amber-300">
+                      {t[currentHero.nameKey]}
+                    </h2>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-amber-500/20">
+                      {t[currentHero.titleKey]}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {currentHero.id === 'rostam'
+                      ? 'پهلوان نامدار سیستان، دارنده ببر بیان و رخش تیزتک'
+                      : currentHero.id === 'sohrab'
+                      ? 'جوان دلاور توران‌زمین، جویای پدر با دلی آکنده از مهر و افتخار'
+                      : 'شیرزن دلاور ایرانی، تیرانداز نامدار و پاسدار دژ سپید'}
                   </p>
                 </div>
+
                 <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold shadow-md"
-                  style={{ backgroundColor: currentHero.color, color: '#090d16' }}
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg border border-white/10 shrink-0"
+                  style={{ backgroundColor: `${currentHero.color}25` }}
                 >
                   {currentHero.id === 'rostam' ? '🦁' : currentHero.id === 'sohrab' ? '🦅' : '🏹'}
                 </div>
               </div>
 
-              <p className="text-xs text-slate-300 leading-relaxed">
-                {t[currentHero.descKey]}
+              {/* Hero Lore Description */}
+              <p className="text-xs text-slate-300 leading-relaxed mt-3 italic">
+                «{t[currentHero.descKey]}»
               </p>
 
-              <div className="grid grid-cols-2 gap-3 mt-1 pt-3 border-t border-slate-800/80">
-                <div className="flex items-start gap-2">
-                  <div className="p-1.5 bg-slate-800 rounded-lg text-amber-400 shrink-0">
+              {/* Combat Gear & Signature Skill */}
+              <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-slate-800">
+                <div className="flex items-start gap-2.5 p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
+                  <div className="p-2 bg-slate-800/80 rounded-lg text-amber-400 shrink-0">
                     <Sword className="w-4 h-4" />
                   </div>
-                  <div>
+                  <div className="overflow-hidden">
                     <span className="text-[10px] text-slate-400 block">{t.equipped}</span>
-                    <span className="text-xs font-bold text-slate-200">{t[currentHero.weaponKey]}</span>
+                    <span className="text-xs font-bold text-slate-200 truncate block">
+                      {t[currentHero.weaponKey]}
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2">
-                  <div className="p-1.5 bg-slate-800 rounded-lg text-sky-400 shrink-0">
+                <div className="flex items-start gap-2.5 p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
+                  <div className="p-2 bg-slate-800/80 rounded-lg text-sky-400 shrink-0">
                     <Zap className="w-4 h-4" />
                   </div>
-                  <div>
+                  <div className="overflow-hidden">
                     <span className="text-[10px] text-slate-400 block">مهارت ویژه</span>
-                    <span className="text-xs font-bold text-sky-300">{t[currentHero.specialKey]}</span>
+                    <span className="text-xs font-bold text-sky-300 truncate block">
+                      {t[currentHero.specialKey]}
+                    </span>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-slate-800/80 text-center">
-                <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block">{t.hp_stat}</span>
-                  <span className="text-sm font-bold text-emerald-400 font-mono tabular-nums">{currentHero.maxHp}</span>
-                </div>
-                <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block">{t.damage}</span>
-                  <span className="text-sm font-bold text-rose-400 font-mono tabular-nums">{currentHero.attackPower}</span>
-                </div>
-                <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block">{t.speed_stat}</span>
-                  <span className="text-sm font-bold text-sky-400 font-mono tabular-nums">{currentHero.speed}x</span>
-                </div>
+            {/* Combat Telemetry Attributes (HP, Attack, Speed) */}
+            <div className="grid grid-cols-3 gap-2.5 mt-4 pt-3 border-t border-slate-800 text-center">
+              <div className="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800 flex flex-col items-center">
+                <span className="text-[10px] text-slate-400 block mb-0.5">{t.hp_stat}</span>
+                <span className="text-sm md:text-base font-black text-emerald-400 font-mono tabular-nums">
+                  {currentHero.maxHp}
+                </span>
+                <span className="text-[9px] text-slate-500">جان پهلوان</span>
+              </div>
+
+              <div className="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800 flex flex-col items-center">
+                <span className="text-[10px] text-slate-400 block mb-0.5">{t.damage}</span>
+                <span className="text-sm md:text-base font-black text-rose-400 font-mono tabular-nums">
+                  {currentHero.attackPower}
+                </span>
+                <span className="text-[9px] text-slate-500">قدرت پایه</span>
+              </div>
+
+              <div className="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800 flex flex-col items-center">
+                <span className="text-[10px] text-slate-400 block mb-0.5">{t.speed_stat}</span>
+                <span className="text-sm md:text-base font-black text-sky-400 font-mono tabular-nums">
+                  {currentHero.speed}x
+                </span>
+                <span className="text-[9px] text-slate-500">چابکی در رزم</span>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Right Column: 7 Epic Chapters Atlas & Primary Play (6 cols) */}
-        <div className="lg:col-span-6 flex flex-col gap-3.5">
+        {/* Right Column: 7 Chapters Atlas & Battles (6 cols) */}
+        <section className="lg:col-span-6 flex flex-col gap-3 justify-between">
           {/* Chapter Atlas Selector */}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between px-1">
-              <span className="text-xs font-bold text-slate-300">
-                اطلس هفت فصل شاهنامه فردوسی
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-200">
+                  اطلس هفت فصل شاهنامه فردوسی
+                </span>
+                <span className="text-[10px] px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded font-mono">
+                  {completedStagesCount} / ۷ فتح‌شده
+                </span>
+              </div>
               <span className="text-[11px] text-amber-400 font-mono font-bold">
-                فصل {selectedStageId} از ۷
+                فصل {selectedStageId}
               </span>
             </div>
 
+            {/* Scrollable Stage Atlas List */}
             <div className="flex flex-col gap-1.5 max-h-[260px] overflow-y-auto pr-1">
               {STAGES.map(stage => {
                 const isSelected = stage.id === selectedStageId;
@@ -250,32 +310,46 @@ export const TitleScreen: React.FC<Props> = ({
                 return (
                   <div
                     key={stage.id}
-                    onClick={() => onSelectStage(stage.id)}
+                    onClick={() => {
+                      onSelectStage(stage.id);
+                      sound.playTonbak(false);
+                    }}
                     className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                       isSelected
-                        ? 'bg-slate-900 border-amber-500 shadow-md ring-1 ring-amber-500/40'
-                        : 'bg-slate-900/40 border-slate-800 hover:border-slate-700'
+                        ? 'bg-slate-900 border-amber-500/90 shadow-lg ring-1 ring-amber-500/40 translate-x-[-2px]'
+                        : 'bg-slate-900/50 border-slate-800/90 hover:border-slate-700 hover:bg-slate-900/80'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
-                        isSelected ? 'bg-amber-500 text-slate-950 font-black' : 'bg-slate-800 text-slate-400'
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${
+                        isSelected
+                          ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 font-black shadow-md'
+                          : 'bg-slate-800 text-slate-400'
                       }`}>
                         {stage.id}
                       </div>
                       <div>
-                        <h3 className="text-xs font-bold text-slate-200">
-                          {t[stage.nameKey]}
+                        <h3 className="text-xs font-bold text-slate-200 flex items-center gap-2">
+                          <span>{t[stage.nameKey]}</span>
+                          {stage.id === 4 && (
+                            <span className="text-[9px] px-1.5 py-0.2 bg-red-950 border border-red-500/50 text-red-300 rounded">
+                              رزم تراژیک
+                            </span>
+                          )}
                         </h3>
-                        <span className="text-[10px] text-amber-400/90 block">
+                        <span className="text-[10px] text-amber-400/90 font-medium">
                           {stage.chapterEra}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 text-xs font-mono tabular-nums text-amber-400">
+                    <div className="flex items-center gap-2.5 text-xs font-mono tabular-nums text-amber-400">
                       <span>+{stage.goldReward}🪙</span>
-                      {isCompleted && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                      {isCompleted ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      ) : (
+                        <ChevronLeft className="w-3.5 h-3.5 text-slate-500" />
+                      )}
                     </div>
                   </div>
                 );
@@ -283,38 +357,61 @@ export const TitleScreen: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Primary Battle & 1v1 Duel CTAs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <button
-              onClick={onStartGame}
-              className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-sm rounded-2xl shadow-xl transition-transform active:scale-98 cursor-pointer flex items-center justify-center gap-2 animate-gold-pulse"
-            >
-              <Play className="w-4 h-4 fill-slate-950" />
-              <span>{t.start_battle} (کمپین داستانی)</span>
-            </button>
+          {/* Primary Action Buttons: Episodic Seven Labors, Duel Fighting, Skill Tree */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            {onOpenEpisodes && (
+              <button
+                onClick={onOpenEpisodes}
+                className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs md:text-sm rounded-xl shadow-xl transition-transform active:scale-98 cursor-pointer flex items-center justify-center gap-2 border border-amber-300 animate-gold-pulse"
+              >
+                <Sparkles className="w-4 h-4 fill-slate-950" />
+                <span>هفت‌خان رستم و پرده‌خوانی 📜</span>
+              </button>
+            )}
 
             <button
               onClick={onOpenDuel}
-              className="w-full py-3 px-4 bg-gradient-to-r from-red-600 via-amber-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-sm rounded-2xl shadow-xl transition-transform active:scale-98 cursor-pointer flex items-center justify-center gap-2 border border-amber-400/40"
+              className="w-full py-3 px-4 bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black text-xs md:text-sm rounded-xl shadow-xl transition-transform active:scale-98 cursor-pointer flex items-center justify-center gap-2 border border-amber-400/30"
             >
               <Swords className="w-4 h-4 text-amber-200" />
-              <span>دوئل تن‌به‌تن پهلوانان ⚔️</span>
+              <span>دوئل تن‌به‌تن (قفل تیغه‌ها) ⚔️</span>
+            </button>
+
+            {onOpenSkillTree && (
+              <button
+                onClick={onOpenSkillTree}
+                className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-800 to-teal-900 hover:from-emerald-700 hover:to-teal-800 text-emerald-100 font-bold text-xs rounded-xl shadow-lg border border-emerald-500/40 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-98"
+              >
+                <Zap className="w-4 h-4 text-yellow-300" />
+                <span>درخت مهارت‌های اساطیری ({progress.skillPoints || 0} امتیاز)</span>
+              </button>
+            )}
+
+            <button
+              onClick={onStartGame}
+              className="w-full py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-amber-300 font-bold text-xs rounded-xl shadow-md border border-amber-500/30 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-98"
+            >
+              <Play className="w-3.5 h-3.5 fill-amber-300" />
+              <span>{t.start_battle} (کمپین داستانی)</span>
             </button>
           </div>
 
-          {/* Hub Buttons Navigation */}
+          {/* Secondary Hub Navigation (6 Modules) */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             <button
               onClick={onOpenDailyQuests}
-              className="py-2 px-3 bg-slate-900 hover:bg-slate-800 border border-amber-500/50 rounded-xl text-xs font-bold text-amber-300 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
+              className="py-2.5 px-3 bg-slate-900/90 hover:bg-slate-800 border border-amber-500/40 rounded-xl text-xs font-bold text-amber-300 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm relative"
             >
               <Calendar className="w-4 h-4 text-amber-400" />
               <span>ماموریت ۲۴ ساعته</span>
+              {activeQuestsCount > 0 && (
+                <span className="w-2 h-2 rounded-full bg-amber-400 absolute top-2 right-2" />
+              )}
             </button>
 
             <button
               onClick={onOpenPlayerStore}
-              className="py-2 px-3 bg-slate-900 hover:bg-slate-800 border border-emerald-500/50 rounded-xl text-xs font-bold text-emerald-300 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
+              className="py-2.5 px-3 bg-slate-900/90 hover:bg-slate-800 border border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-300 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
             >
               <ShoppingBag className="w-4 h-4 text-emerald-400" />
               <span>بازارچه کیانی</span>
@@ -322,7 +419,7 @@ export const TitleScreen: React.FC<Props> = ({
 
             <button
               onClick={onOpenArmory}
-              className="py-2 px-3 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-xs font-bold text-slate-200 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
+              className="py-2.5 px-3 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-xs font-bold text-slate-200 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
             >
               <Shield className="w-4 h-4 text-amber-400" />
               <span>{t.hero_armory}</span>
@@ -330,7 +427,7 @@ export const TitleScreen: React.FC<Props> = ({
 
             <button
               onClick={onOpenCrypto}
-              className="py-2 px-3 bg-slate-900 hover:bg-slate-800 border border-sky-500/40 rounded-xl text-xs font-bold text-sky-300 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
+              className="py-2.5 px-3 bg-slate-900/90 hover:bg-slate-800 border border-sky-500/40 rounded-xl text-xs font-bold text-sky-300 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
             >
               <Wallet className="w-4 h-4 text-sky-400" />
               <span>{t.crypto_center}</span>
@@ -338,7 +435,7 @@ export const TitleScreen: React.FC<Props> = ({
 
             <button
               onClick={onOpenRewardedAd}
-              className="py-2 px-3 bg-slate-900 hover:bg-slate-800 border border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-300 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
+              className="py-2.5 px-3 bg-slate-900/90 hover:bg-slate-800 border border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-300 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
             >
               <Video className="w-4 h-4 text-emerald-400" />
               <span>{t.watch_ad_reward}</span>
@@ -346,23 +443,31 @@ export const TitleScreen: React.FC<Props> = ({
 
             <button
               onClick={onOpenDevDashboard}
-              className="py-2 px-3 bg-slate-900 hover:bg-slate-800 border border-purple-500/40 rounded-xl text-xs font-bold text-purple-300 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
+              className="py-2.5 px-3 bg-slate-900/90 hover:bg-slate-800 border border-purple-500/40 rounded-xl text-xs font-bold text-purple-300 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
             >
               <BarChart3 className="w-4 h-4 text-purple-400" />
               <span>صندوق سازنده</span>
             </button>
           </div>
-        </div>
+        </section>
       </main>
 
-      {/* Footer Quote */}
-      <footer className="w-full max-w-6xl mx-auto py-2.5 border-t border-slate-900 flex flex-wrap items-center justify-between text-xs text-slate-500">
-        <span className="italic">
-          «پی افکندم از نظم کاخی بلند / که از باد و باران نیابد گزند» — ابوالقاسم فردوسی
+      {/* Footer Verse & Controls Hint */}
+      <footer className="relative z-10 w-full max-w-7xl mx-auto pt-2.5 border-t border-slate-900/80 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-2">
+        <span className="italic text-amber-400/80">
+          «پی افکندم از نظم کاخی بلند / که از باد و باران نیابد گزند» — حکیم ابوالقاسم فردوسی
         </span>
-        <span className="font-mono text-[11px] text-slate-400">
-          A/D حرکت · Space پرش · J کامبوی ۳ ضربه‌ای · K تیر · L فرّه
-        </span>
+        <div className="flex items-center gap-2 font-mono text-[11px] text-slate-400">
+          <span>حرکت: A/D</span>
+          <span>·</span>
+          <span>پرش: Space</span>
+          <span>·</span>
+          <span>ضربه: J</span>
+          <span>·</span>
+          <span>تیر/دش: K</span>
+          <span>·</span>
+          <span>فرّه: L</span>
+        </div>
       </footer>
     </div>
   );

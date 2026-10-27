@@ -35,7 +35,13 @@ import { DailyQuestsModal } from './components/DailyQuestsModal';
 import { PlayerStoreModal } from './components/PlayerStoreModal';
 import { StoryPrologueModal } from './components/StoryPrologueModal';
 import { DuelArena } from './components/DuelArena';
-import { Trophy, Skull, Sparkles, RefreshCw, ArrowRight, Video } from 'lucide-react';
+import { EpisodeSelector } from './components/EpisodeSelector';
+import { SkillTreeModal } from './components/SkillTreeModal';
+import { NaqqalNarrator } from './components/NaqqalNarrator';
+import { EpisodeData } from './types';
+import { SkillSystem } from './game/SkillSystem';
+import { EPISODES_DATA } from './constants/gameData';
+import { Trophy, Skull, Sparkles, RefreshCw, ArrowRight, Video, X } from 'lucide-react';
 import { sound } from './utils/audio';
 
 export default function App() {
@@ -67,6 +73,9 @@ export default function App() {
   const [showDailyQuests, setShowDailyQuests] = useState(false);
   const [showPlayerStore, setShowPlayerStore] = useState(false);
   const [showStoryPrologue, setShowStoryPrologue] = useState(false);
+  const [showEpisodes, setShowEpisodes] = useState(false);
+  const [showSkillTree, setShowSkillTree] = useState(false);
+  const [activeNaqqalEpisode, setActiveNaqqalEpisode] = useState<EpisodeData | null>(null);
   const [adForRespawn, setAdForRespawn] = useState(false);
   const [duelOpponentId, setDuelOpponentId] = useState<string | undefined>(undefined);
 
@@ -341,23 +350,31 @@ export default function App() {
   const selectedHero = HEROES.find(h => h.id === progress.selectedHero) || HEROES[0];
   const selectedStage = STAGES.find(s => s.id === progress.currentStage) || STAGES[0];
 
+  const skillBonuses = SkillSystem.getAggregatedBonuses(progress);
+
   let weaponBonusDamage = 0;
   if (selectedHero.id === 'rostam') {
     const lvl = progress.weaponLevels['weapon_mace'] || 1;
-    weaponBonusDamage = lvl * 8;
+    weaponBonusDamage = lvl * 8 + skillBonuses.bonusAttack;
   } else if (selectedHero.id === 'sohrab') {
     const lvl = progress.weaponLevels['weapon_scimitar'] || 1;
-    weaponBonusDamage = lvl * 7;
+    weaponBonusDamage = lvl * 7 + skillBonuses.bonusAttack;
   } else {
     const lvl = progress.weaponLevels['weapon_bow'] || 1;
-    weaponBonusDamage = lvl * 6;
+    weaponBonusDamage = lvl * 6 + skillBonuses.bonusAttack;
   }
 
   const armorLvl = progress.weaponLevels['weapon_armor'] || 0;
-  const armorDamageReduction = Math.min(0.5, armorLvl * 0.08);
+  const armorDamageReduction = Math.min(0.65, armorLvl * 0.08 + skillBonuses.bonusDefense / 100);
 
   const bootsLvl = progress.weaponLevels['weapon_boots'] || 0;
-  const hasSimurghBoots = bootsLvl >= 1;
+  const hasSimurghBoots = bootsLvl >= 1 || skillBonuses.bonusSpeed > 0;
+  const hasSimurghFeather = !!skillBonuses.activePerks['simurgh_revive'];
+
+  const battleHero = {
+    ...selectedHero,
+    maxHp: selectedHero.maxHp + skillBonuses.bonusHp,
+  };
 
   return (
     <div className="w-screen h-screen overflow-hidden bg-[#070b14] text-slate-100 flex flex-col font-sans">
@@ -383,6 +400,8 @@ export default function App() {
           onOpenDevDashboard={() => setShowDevDashboard(true)}
           onOpenDailyQuests={() => setShowDailyQuests(true)}
           onOpenPlayerStore={() => setShowPlayerStore(true)}
+          onOpenEpisodes={() => setShowEpisodes(true)}
+          onOpenSkillTree={() => setShowSkillTree(true)}
         />
       )}
 
@@ -401,6 +420,7 @@ export default function App() {
               ...prev,
               gold: prev.gold + gold,
               gems: prev.gems + gems,
+              skillPoints: (prev.skillPoints || 0) + 1,
             }));
           }}
         />
@@ -408,13 +428,14 @@ export default function App() {
 
       {view === 'PLAYING' && (
         <GameCanvas
-          hero={selectedHero}
+          hero={battleHero}
           stage={selectedStage}
           graphicsTier={graphicsTier}
           onSelectGraphicsTier={handleSelectGraphicsTier}
           weaponBonusDamage={weaponBonusDamage}
           armorDamageReduction={armorDamageReduction}
           hasSimurghBoots={hasSimurghBoots}
+          hasSimurghFeather={hasSimurghFeather}
           lang={lang}
           onGameOver={handleGameOver}
           onVictory={handleVictory}
@@ -646,6 +667,94 @@ export default function App() {
             setView('PLAYING');
           }}
         />
+      )}
+
+      {/* Seven Labors Episodic Roadmap Modal */}
+      {showEpisodes && (
+        <EpisodeSelector
+          selectedEpisodeId={progress.selectedEpisodeId || progress.currentStage}
+          highScore={progress.highScore}
+          completedEpisodes={progress.completedStages}
+          lang={lang}
+          onSelectEpisode={(ep) => {
+            setProgress(prev => ({
+              ...prev,
+              selectedEpisodeId: ep.id,
+              currentStage: ep.id,
+            }));
+          }}
+          onStartEpisode={(ep) => {
+            setProgress(prev => ({
+              ...prev,
+              selectedEpisodeId: ep.id,
+              currentStage: ep.id,
+            }));
+            setShowEpisodes(false);
+            setView('PLAYING');
+          }}
+          onOpenNaqqal={(ep) => {
+            setActiveNaqqalEpisode(ep);
+          }}
+          onBack={() => setShowEpisodes(false)}
+        />
+      )}
+
+      {/* Mythic Skill Tree Modal */}
+      {showSkillTree && (
+        <SkillTreeModal
+          progress={progress}
+          onUpdateProgress={(newProgress) => setProgress(newProgress)}
+          onClose={() => setShowSkillTree(false)}
+        />
+      )}
+
+      {/* Active Naqqal Perde-khani Recitation Modal */}
+      {activeNaqqalEpisode && (
+        <div className="fixed inset-0 z-50 bg-[#060913]/95 backdrop-blur-md flex items-center justify-center p-4 select-none">
+          <div className="w-full max-w-2xl bg-[#0c111e] border-2 border-amber-500/80 rounded-3xl p-5 shadow-2xl flex flex-col gap-4 relative animate-fade-in">
+            <div className="flex items-center justify-between border-b border-amber-500/30 pb-3">
+              <div>
+                <span className="text-[10px] font-mono font-bold text-amber-400">
+                  خوان {activeNaqqalEpisode.khanNumber} از هفت‌خان رستم
+                </span>
+                <h3 className="text-base font-black text-amber-200">
+                  {activeNaqqalEpisode.titleFa}
+                </h3>
+              </div>
+              <button
+                onClick={() => setActiveNaqqalEpisode(null)}
+                className="w-8 h-8 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center justify-center cursor-pointer active:scale-95"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <NaqqalNarrator
+              title={activeNaqqalEpisode.titleFa}
+              couplet={activeNaqqalEpisode.couplet}
+              poet="حکیم ابوالقاسم فردوسی"
+              fullProse={activeNaqqalEpisode.narrativeFa}
+            />
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => {
+                  setProgress(prev => ({
+                    ...prev,
+                    selectedEpisodeId: activeNaqqalEpisode.id,
+                    currentStage: activeNaqqalEpisode.id,
+                  }));
+                  setActiveNaqqalEpisode(null);
+                  setShowEpisodes(false);
+                  setView('PLAYING');
+                }}
+                className="py-2 px-4 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold text-xs rounded-xl shadow-lg cursor-pointer active:scale-95 transition-all"
+              >
+                آغاز نبرد این خوان
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

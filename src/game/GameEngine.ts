@@ -9,6 +9,7 @@ export interface InputState {
   attack: boolean;
   quickAttack: boolean;
   special: boolean;
+  parry?: boolean;
 }
 
 interface Particle {
@@ -144,11 +145,18 @@ export class GameEngine {
     isAttacking: false,
     attackTimer: 0,
     attackType: 'melee' as 'melee' | 'special',
+    isParrying: false,
+    parryTimer: 0,
     isInvulnerable: false,
     invulnTimer: 0,
     specialCooldown: 0,
     animFrame: 0,
   };
+
+  // Simurgh Perk & Mythic Abilities
+  public hasSimurghFeather: boolean = false;
+  private simurghRevived: boolean = false;
+  private prevParry: boolean = false;
 
   // 3-Hit Combo State System
   public comboStep: number = 0;
@@ -624,6 +632,20 @@ export class GameEngine {
     }
     this.prevSpecial = this.input.special;
 
+    // Parry / Deflect Key C / Mobile Button
+    if (this.input.parry && !this.prevParry && this.player.parryTimer <= 0) {
+      this.player.isParrying = true;
+      this.player.parryTimer = 0.35;
+      sound.playSlash(1.5);
+      this.spawnParticles(this.player.x + (this.player.facing === 1 ? this.player.w : 0), this.player.y + this.player.h / 2, '#38bdf8', 8);
+    }
+    this.prevParry = !!this.input.parry;
+
+    if (this.player.parryTimer > 0) {
+      this.player.parryTimer -= dt;
+      if (this.player.parryTimer <= 0) this.player.isParrying = false;
+    }
+
     if (this.player.attackTimer > 0) {
       this.player.attackTimer -= dt;
       if (this.player.attackTimer <= 0) this.player.isAttacking = false;
@@ -918,6 +940,24 @@ export class GameEngine {
   }
 
   private takePlayerDamage(rawDamage: number) {
+    if (this.player.isParrying) {
+      sound.playParrySuccess();
+      this.screenShake = 8;
+      this.spawnParticles(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, '#fbbf24', 25);
+      this.addFloatingText(this.player.x + this.player.w / 2, this.player.y - 25, 'دفع برق‌آسا (Parry)!', '#fbbf24');
+      this.currentComboCount += 2;
+      this.player.rage = Math.min(this.player.maxRage, this.player.rage + 15);
+      // Stagger nearby enemies
+      this.enemies.forEach(e => {
+        if (Math.abs(e.x - this.player.x) < 200) {
+          e.hitTimer = 0.8;
+          e.isHit = true;
+          e.vx = (e.x > this.player.x ? 1 : -1) * 220;
+        }
+      });
+      return;
+    }
+
     const reducedDmg = Math.max(4, Math.round(rawDamage * (1 - this.armorDamageReduction)));
     this.player.hp -= reducedDmg;
     this.player.isInvulnerable = true;
@@ -933,6 +973,16 @@ export class GameEngine {
     );
 
     if (this.player.hp <= 0) {
+      if (this.hasSimurghFeather && !this.simurghRevived) {
+        this.simurghRevived = true;
+        this.player.hp = Math.round(this.player.maxHp * 0.5);
+        this.player.isInvulnerable = true;
+        this.player.invulnTimer = 2.5;
+        this.spawnParticles(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, '#fbbf24', 50);
+        sound.playSimurghAura();
+        this.addFloatingText(this.player.x + this.player.w / 2, this.player.y - 35, 'پر سیمرغ: احیای تهمتن!', '#fef08a');
+        return;
+      }
       this.player.hp = 0;
       this.stop();
       sound.playDefeat();

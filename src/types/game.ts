@@ -108,6 +108,13 @@ export interface PlayerProgress {
   dailyQuests: DailyQuest[];
   lastDailyResetTimestamp: number;
   totalFinisherCombosLanded: number;
+  skillPoints?: number;
+  unlockedSkillNodes?: Record<string, boolean>;
+  playerLevel?: number;
+  playerXp?: number;
+  completedChallenges?: Record<string, boolean>;
+  equippedPerks?: string[];
+  selectedEpisodeId?: number;
 }
 
 export interface CreatorWallets {

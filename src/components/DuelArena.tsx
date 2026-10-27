@@ -3,7 +3,6 @@ import { HeroDef, HeroId, GraphicsTier, Language } from '../types/game';
 import { HEROES } from '../constants/gameData';
 import { TRANSLATIONS } from '../constants/translations';
 import { DuelEngine, ClashState } from '../game/DuelEngine';
-import { naqqalAudio } from '../utils/naqqalAudio';
 import { sound } from '../utils/audio';
 import {
   Sword,
@@ -103,7 +102,7 @@ export const DuelArena: React.FC<Props> = ({
     tapCount: 0,
   });
 
-  // Fighter Stats for HUD
+  // Fighter Telemetry for HUD
   const [p1Hp, setP1Hp] = useState(100);
   const [p1Stam, setP1Stam] = useState(100);
   const [p1Rage, setP1Rage] = useState(0);
@@ -159,7 +158,7 @@ export const DuelArena: React.FC<Props> = ({
     engine.start();
   }, [playerHero, selectedOpponent, graphicsTier, onVictoryReward]);
 
-  // Keep HUD updated with engine values
+  // Keep HUD updated with engine telemetry
   useEffect(() => {
     if (!isDuelActive) return;
 
@@ -172,7 +171,7 @@ export const DuelArena: React.FC<Props> = ({
         setP2Hp(Math.round(engineRef.current.fighter2.hp));
         setP2Stam(Math.round(engineRef.current.fighter2.stamina));
       }
-    }, 60);
+    }, 50);
 
     return () => clearInterval(interval);
   }, [isDuelActive]);
@@ -237,7 +236,7 @@ export const DuelArena: React.FC<Props> = ({
   return (
     <div className="relative w-full h-full bg-[#070b16] text-slate-100 flex flex-col justify-between overflow-hidden select-none">
       {/* Top Bar Navigation */}
-      <header className="p-3 md:p-4 bg-slate-900/90 border-b border-amber-500/40 flex items-center justify-between z-20">
+      <header className="p-3 md:p-4 bg-slate-900/95 border-b border-amber-500/30 flex items-center justify-between z-20 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
@@ -250,8 +249,8 @@ export const DuelArena: React.FC<Props> = ({
             <span>بازگشت به اردوگاه</span>
           </button>
 
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400">
               <Swords className="w-5 h-5" />
             </div>
             <div>
@@ -259,7 +258,7 @@ export const DuelArena: React.FC<Props> = ({
                 میدان دوئل تن‌به‌تن پهلوانان شاهنامه
               </h2>
               <span className="text-[10px] text-slate-400 font-medium">
-                سیستم مبارزه تن‌به‌تن با مکانیک قفل سلاح‌ها (Blade Clash)
+                سیستم مبارزه حماسی با مکانیک قفل سلاح‌ها (Blade Clash)
               </span>
             </div>
           </div>
@@ -274,10 +273,10 @@ export const DuelArena: React.FC<Props> = ({
                 <button
                   key={rival.id}
                   onClick={() => setSelectedOpponent(rival)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     selectedOpponent.id === rival.id
-                      ? 'bg-amber-500 text-slate-950 shadow-md font-black'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
+                      : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'
                   }`}
                 >
                   {rival.name}
@@ -290,74 +289,76 @@ export const DuelArena: React.FC<Props> = ({
 
       {/* Duel HUD: Health, Stamina & Rage Bars */}
       {isDuelActive && (
-        <div className="absolute top-16 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+        <div className="absolute top-16 inset-x-4 z-20 flex items-center justify-between pointer-events-none">
           {/* Player Fighter Card */}
-          <div className="flex items-center gap-3 bg-slate-950/80 border border-amber-500/50 p-2.5 rounded-2xl backdrop-blur-md w-60 sm:w-72 shadow-xl">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/30 border border-amber-400 flex items-center justify-center text-xl font-bold">
+          <div className="flex items-center gap-3 bg-slate-950/90 border border-amber-500/50 p-2.5 rounded-2xl backdrop-blur-md w-64 sm:w-76 shadow-2xl">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-400/60 flex items-center justify-center text-2xl font-bold shrink-0">
               🦁
             </div>
-            <div className="flex-1 flex flex-col gap-1">
+            <div className="flex-1 flex flex-col gap-1 overflow-hidden">
               <div className="flex justify-between items-center text-xs font-black">
-                <span className="text-amber-300">{playerHero.nameKey === 'rostam' ? 'رستم دستان' : playerHero.nameKey}</span>
-                <span className="font-mono text-emerald-400">{p1Hp}%</span>
+                <span className="text-amber-300 truncate">
+                  {playerHero.nameKey === 'rostam' ? 'رستم دستان' : playerHero.nameKey === 'sohrab' ? 'سهراب یل' : 'گردآفرید'}
+                </span>
+                <span className="font-mono text-emerald-400 tabular-nums">{p1Hp}%</span>
               </div>
 
               {/* HP Bar */}
-              <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700">
+              <div className="w-full h-3 bg-slate-900 rounded-lg overflow-hidden p-0.5 border border-slate-700">
                 <div
-                  className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-150"
+                  className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded transition-all duration-150"
                   style={{ width: `${p1Hp}%` }}
-                ></div>
+                />
               </div>
 
               {/* Stamina & Rage Bars */}
               <div className="flex gap-1.5">
-                <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div className="flex-1 h-1.5 bg-slate-900 rounded overflow-hidden">
                   <div
                     className="h-full bg-sky-400 transition-all duration-100"
                     style={{ width: `${p1Stam}%` }}
-                  ></div>
+                  />
                 </div>
-                <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div className="flex-1 h-1.5 bg-slate-900 rounded overflow-hidden">
                   <div
                     className="h-full bg-amber-400 transition-all duration-100"
                     style={{ width: `${p1Rage}%` }}
-                  ></div>
+                  />
                 </div>
               </div>
             </div>
           </div>
 
           {/* VS Crest */}
-          <div className="w-10 h-10 rounded-full bg-gradient-to-b from-amber-500 to-amber-700 flex items-center justify-center font-black text-slate-950 shadow-lg border-2 border-yellow-300 text-xs">
+          <div className="w-11 h-11 rounded-full bg-gradient-to-b from-amber-500 to-amber-700 flex items-center justify-center font-black text-slate-950 shadow-xl border-2 border-yellow-300 text-xs shrink-0">
             VS
           </div>
 
           {/* Opponent Fighter Card */}
-          <div className="flex items-center gap-3 bg-slate-950/80 border border-rose-500/50 p-2.5 rounded-2xl backdrop-blur-md w-60 sm:w-72 shadow-xl flex-row-reverse text-right">
-            <div className="w-12 h-12 rounded-xl bg-rose-500/30 border border-rose-400 flex items-center justify-center text-xl font-bold">
+          <div className="flex items-center gap-3 bg-slate-950/90 border border-rose-500/50 p-2.5 rounded-2xl backdrop-blur-md w-64 sm:w-76 shadow-2xl flex-row-reverse text-right">
+            <div className="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-400/60 flex items-center justify-center text-2xl font-bold shrink-0">
               ⚔️
             </div>
-            <div className="flex-1 flex flex-col gap-1">
+            <div className="flex-1 flex flex-col gap-1 overflow-hidden">
               <div className="flex justify-between items-center text-xs font-black flex-row-reverse">
-                <span className="text-rose-300">{selectedOpponent.name}</span>
-                <span className="font-mono text-rose-400">{p2Hp}%</span>
+                <span className="text-rose-300 truncate">{selectedOpponent.name}</span>
+                <span className="font-mono text-rose-400 tabular-nums">{p2Hp}%</span>
               </div>
 
               {/* HP Bar */}
-              <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700">
+              <div className="w-full h-3 bg-slate-900 rounded-lg overflow-hidden p-0.5 border border-slate-700">
                 <div
-                  className="h-full bg-gradient-to-l from-rose-500 to-rose-400 rounded-full transition-all duration-150"
+                  className="h-full bg-gradient-to-l from-rose-600 to-rose-400 rounded transition-all duration-150"
                   style={{ width: `${p2Hp}%` }}
-                ></div>
+                />
               </div>
 
               {/* Stamina Bar */}
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-slate-900 rounded overflow-hidden">
                 <div
                   className="h-full bg-sky-400 transition-all duration-100 float-right"
                   style={{ width: `${p2Stam}%` }}
-                ></div>
+                />
               </div>
             </div>
           </div>
@@ -382,10 +383,10 @@ export const DuelArena: React.FC<Props> = ({
             <h3 className="text-xl md:text-2xl font-black text-amber-300">
               رویارویی تن‌به‌تن: {playerHero.nameKey === 'rostam' ? 'رستم دستان' : playerHero.nameKey} در برابر {selectedOpponent.name}
             </h3>
-            <p className="text-xs text-slate-300 max-w-md mt-2 leading-relaxed">
+            <p className="text-xs text-slate-300 max-w-md mt-2 leading-relaxed italic">
               «به گود اندر آ و هنر برنمای / که جز نیزه و تیغ ناید به کار»
               <br />
-              هنگام ضربه همزمان، تیغه‌ها قفل شده و با تپ سریع حریف را خرد کن!
+              هنگام برخورد همزمان سلاح‌ها، تیغه‌ها قفل شده و با تپ سریع حریف را به عقب بران!
             </p>
 
             <button
@@ -401,7 +402,7 @@ export const DuelArena: React.FC<Props> = ({
         {/* Blade Clash Active QTE Overlay (قفل شدن تیغه‌ها) */}
         {clashState.active && (
           <div className="absolute inset-0 bg-amber-950/40 backdrop-blur-xs flex flex-col items-center justify-center p-4 z-40 animate-pulse pointer-events-auto">
-            <div className="bg-slate-950/90 border-2 border-yellow-400 p-5 rounded-2xl max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-3">
+            <div className="bg-slate-950/95 border-2 border-yellow-400 p-5 rounded-2xl max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-3">
               <div className="text-3xl animate-bounce">⚡ ⚔️ ⚡</div>
               <h4 className="text-base font-black text-yellow-300">
                 قفل شدن حماسی تیغه‌ها! (Blade Clash)
@@ -410,12 +411,12 @@ export const DuelArena: React.FC<Props> = ({
                 سریعاً دکمه زیر یا کلید Space / J را پیاپی بزنید!
               </p>
 
-              {/* Progress bar of the clash */}
-              <div className="w-full h-5 bg-slate-900 border border-amber-500/60 rounded-full overflow-hidden p-1 shadow-inner relative">
+              {/* Tension gauge */}
+              <div className="w-full h-5 bg-slate-900 border border-amber-500/60 rounded-lg overflow-hidden p-1 shadow-inner relative">
                 <div
-                  className="h-full bg-gradient-to-r from-yellow-500 via-amber-400 to-emerald-400 rounded-full transition-all duration-75"
+                  className="h-full bg-gradient-to-r from-yellow-500 via-amber-400 to-emerald-400 rounded transition-all duration-75"
                   style={{ width: `${clashState.playerProgress}%` }}
-                ></div>
+                />
                 <div className="absolute inset-0 flex items-center justify-center text-[11px] font-black text-slate-950">
                   {Math.round(clashState.playerProgress)}%
                 </div>
@@ -456,7 +457,7 @@ export const DuelArena: React.FC<Props> = ({
             </p>
 
             {duelResult === 'victory' && (
-              <div className="my-4 px-4 py-2 bg-slate-900 border border-amber-500/50 rounded-xl flex items-center gap-4 text-xs font-bold text-amber-300">
+              <div className="my-4 px-4 py-2 bg-slate-900 border border-amber-500/50 rounded-xl flex items-center gap-4 text-xs font-bold text-amber-300 font-mono">
                 <span>+۳۰۰ سکه طلا 🪙</span>
                 <span>+۱۵ گوهر کیانی 💎</span>
               </div>
@@ -475,7 +476,7 @@ export const DuelArena: React.FC<Props> = ({
                 onClick={onExit}
                 className="py-2.5 px-6 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer"
               >
-                بازگشت به منو
+                بازگشت به اردوگاه
               </button>
             </div>
           </div>
@@ -483,7 +484,7 @@ export const DuelArena: React.FC<Props> = ({
       </div>
 
       {/* Duel Bottom Controls (Keyboard guide & Mobile On-screen buttons) */}
-      <footer className="p-3 bg-slate-900/90 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 z-20">
+      <footer className="p-3 bg-slate-900/95 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 z-20">
         <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono hidden md:flex">
           <span className="text-amber-400 font-bold">راهنمای کلیدها:</span>
           <span>A/D حرکت</span>
@@ -507,6 +508,7 @@ export const DuelArena: React.FC<Props> = ({
             onMouseDown={() => engineRef.current?.playerMove(-1)}
             onMouseUp={() => engineRef.current?.playerMove(0)}
             className="w-12 h-10 bg-slate-800 active:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 font-bold text-sm flex items-center justify-center cursor-pointer"
+            aria-label="Move Left"
           >
             ←
           </button>
@@ -517,6 +519,7 @@ export const DuelArena: React.FC<Props> = ({
             onMouseDown={() => engineRef.current?.playerMove(1)}
             onMouseUp={() => engineRef.current?.playerMove(0)}
             className="w-12 h-10 bg-slate-800 active:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 font-bold text-sm flex items-center justify-center cursor-pointer"
+            aria-label="Move Right"
           >
             →
           </button>
