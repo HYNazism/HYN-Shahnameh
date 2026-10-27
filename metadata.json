@@ -1,0 +1,6 @@
+{
+  "name": "رزم‌نامه: نبرد افسانه‌ای شاهنامه | Razmnameh",
+  "description": "بازی اکشن پلتفرمر دوبعدی حماسی با اقتباس از شاهنامه فردوسی، نبرد با دیوان اساطیری، ارتقای سلاح‌های باستانی، سیستم چندزبانه و درگاه درآمدزایی رمزارزی و تبلیغات برای سازنده.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
