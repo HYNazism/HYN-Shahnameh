@@ -233,10 +233,15 @@ export const DuelArena: React.FC<Props> = ({
     };
   }, []);
 
+  const isRtl = lang === 'fa' || lang === 'ar';
+
   return (
-    <div className="relative w-full h-full bg-[#070b16] text-slate-100 flex flex-col justify-between overflow-hidden select-none">
+    <div
+      dir={isRtl ? 'rtl' : 'ltr'}
+      className="relative w-full h-full bg-[#070b16] text-slate-100 flex flex-col justify-between overflow-hidden select-none"
+    >
       {/* Top Bar Navigation */}
-      <header className="p-3 md:p-4 bg-slate-900/95 border-b border-amber-500/30 flex items-center justify-between z-20 backdrop-blur-md">
+      <header className="safe-top safe-px p-3 md:p-4 bg-slate-900/95 border-b border-amber-500/30 flex items-center justify-between z-20 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
@@ -245,8 +250,8 @@ export const DuelArena: React.FC<Props> = ({
             }}
             className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>بازگشت به اردوگاه</span>
+            <ArrowLeft className={`w-4 h-4 ${isRtl ? 'rotate-180' : ''}`} />
+            <span>{isRtl ? 'بازگشت به اردوگاه' : 'Return to Camp'}</span>
           </button>
 
           <div className="flex items-center gap-2.5">
@@ -484,86 +489,119 @@ export const DuelArena: React.FC<Props> = ({
       </div>
 
       {/* Duel Bottom Controls (Keyboard guide & Mobile On-screen buttons) */}
-      <footer className="p-3 bg-slate-900/95 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 z-20">
+      <footer className="safe-bottom safe-px p-3 bg-slate-900/95 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 z-20">
         <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono hidden md:flex">
-          <span className="text-amber-400 font-bold">راهنمای کلیدها:</span>
-          <span>A/D حرکت</span>
+          <span className="text-amber-400 font-bold">{isRtl ? 'راهنمای کلیدها:' : 'Controls:'}</span>
+          <span>A/D {isRtl ? 'حرکت' : 'Move'}</span>
           <span>·</span>
-          <span>Space پرش</span>
+          <span>Space {isRtl ? 'پرش' : 'Jump'}</span>
           <span>·</span>
-          <span>J ضربه سبک</span>
+          <span>J {isRtl ? 'ضربه سبک' : 'Light Attack'}</span>
           <span>·</span>
-          <span>K ضربه سنگین</span>
+          <span>K {isRtl ? 'ضربه سنگین' : 'Heavy Attack'}</span>
           <span>·</span>
-          <span>L دفاع و دفع (Parry)</span>
+          <span>L {isRtl ? 'دفاع' : 'Parry'}</span>
           <span>·</span>
-          <span>U فرّه ایزدی</span>
+          <span>U {isRtl ? 'فرّه ایزدی' : 'Farreh'}</span>
         </div>
 
         {/* Mobile On-screen Combat Buttons */}
         <div className="w-full md:w-auto flex items-center justify-center gap-2">
           <button
-            onTouchStart={() => engineRef.current?.playerMove(-1)}
-            onTouchEnd={() => engineRef.current?.playerMove(0)}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              navigator?.vibrate?.(10);
+              engineRef.current?.playerMove(-1);
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              engineRef.current?.playerMove(0);
+            }}
             onMouseDown={() => engineRef.current?.playerMove(-1)}
             onMouseUp={() => engineRef.current?.playerMove(0)}
-            className="w-12 h-10 bg-slate-800 active:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 font-bold text-sm flex items-center justify-center cursor-pointer"
+            className="w-12 h-11 bg-slate-800 active:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 font-bold text-sm flex items-center justify-center cursor-pointer shadow-md active:scale-95 transition-transform"
             aria-label="Move Left"
           >
-            ←
+            ◀
           </button>
 
           <button
-            onTouchStart={() => engineRef.current?.playerMove(1)}
-            onTouchEnd={() => engineRef.current?.playerMove(0)}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              navigator?.vibrate?.(10);
+              engineRef.current?.playerMove(1);
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              engineRef.current?.playerMove(0);
+            }}
             onMouseDown={() => engineRef.current?.playerMove(1)}
             onMouseUp={() => engineRef.current?.playerMove(0)}
-            className="w-12 h-10 bg-slate-800 active:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 font-bold text-sm flex items-center justify-center cursor-pointer"
+            className="w-12 h-11 bg-slate-800 active:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 font-bold text-sm flex items-center justify-center cursor-pointer shadow-md active:scale-95 transition-transform"
             aria-label="Move Right"
           >
-            →
+            ▶
           </button>
 
           <button
-            onClick={() => engineRef.current?.playerJump()}
-            className="px-3 h-10 bg-slate-800 active:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 cursor-pointer"
+            onClick={() => {
+              navigator?.vibrate?.(10);
+              engineRef.current?.playerJump();
+            }}
+            className="px-3 h-11 bg-slate-800 active:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 cursor-pointer shadow-md active:scale-95 transition-transform"
           >
-            پرش
+            {isRtl ? 'پرش' : 'Jump'}
           </button>
 
           <button
-            onClick={() => engineRef.current?.playerAttack('light')}
-            className="px-3.5 h-10 bg-amber-500/20 active:bg-amber-500/40 border border-amber-500/80 rounded-xl text-xs font-black text-amber-300 flex items-center gap-1 cursor-pointer"
+            onClick={() => {
+              navigator?.vibrate?.(12);
+              engineRef.current?.playerAttack('light');
+            }}
+            className="px-3.5 h-11 bg-amber-500/20 active:bg-amber-500/40 border border-amber-500/80 rounded-xl text-xs font-black text-amber-300 flex items-center gap-1 cursor-pointer shadow-md active:scale-95 transition-transform"
           >
             <Sword className="w-3.5 h-3.5" />
-            <span>سبک</span>
+            <span>{isRtl ? 'سبک' : 'Light'}</span>
           </button>
 
           <button
-            onClick={() => engineRef.current?.playerAttack('heavy')}
-            className="px-3.5 h-10 bg-amber-600 active:bg-amber-500 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer shadow-md"
+            onClick={() => {
+              navigator?.vibrate?.(15);
+              engineRef.current?.playerAttack('heavy');
+            }}
+            className="px-3.5 h-11 bg-amber-600 active:bg-amber-500 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer shadow-md active:scale-95 transition-transform"
           >
             <Zap className="w-3.5 h-3.5" />
-            <span>سنگین</span>
+            <span>{isRtl ? 'سنگین' : 'Heavy'}</span>
           </button>
 
           <button
-            onTouchStart={() => engineRef.current?.playerParry(true)}
-            onTouchEnd={() => engineRef.current?.playerParry(false)}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              navigator?.vibrate?.(12);
+              engineRef.current?.playerParry(true);
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              engineRef.current?.playerParry(false);
+            }}
             onMouseDown={() => engineRef.current?.playerParry(true)}
             onMouseUp={() => engineRef.current?.playerParry(false)}
-            className="px-3.5 h-10 bg-sky-600/30 active:bg-sky-600/60 border border-sky-500 rounded-xl text-xs font-bold text-sky-300 flex items-center gap-1 cursor-pointer"
+            className="px-3.5 h-11 bg-sky-600/30 active:bg-sky-600/60 border border-sky-500 rounded-xl text-xs font-bold text-sky-300 flex items-center gap-1 cursor-pointer shadow-md active:scale-95 transition-transform"
           >
             <Shield className="w-3.5 h-3.5" />
-            <span>دفاع</span>
+            <span>{isRtl ? 'دفاع' : 'Parry'}</span>
           </button>
 
           <button
-            onClick={() => engineRef.current?.playerSpecial()}
-            className="px-3 h-10 bg-gradient-to-r from-red-600 to-amber-600 active:scale-95 text-white rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer shadow-md"
+            onClick={() => {
+              navigator?.vibrate?.(25);
+              engineRef.current?.playerSpecial();
+            }}
+            className="px-3 h-11 bg-gradient-to-r from-red-600 to-amber-600 active:scale-95 text-white rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer shadow-md transition-transform"
           >
             <Flame className="w-3.5 h-3.5" />
-            <span>فرّه</span>
+            <span>{isRtl ? 'فرّه' : 'Farreh'}</span>
           </button>
         </div>
       </footer>

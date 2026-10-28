@@ -82,3 +82,36 @@
 .persian-card-gradient {
   background: linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(8, 12, 22, 0.95) 100%);
 }
+
+/* Responsive Safe Area insets & Viewport scaling */
+.safe-top {
+  padding-top: max(10px, env(safe-area-inset-top));
+}
+.safe-bottom {
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
+.safe-left {
+  padding-left: max(12px, env(safe-area-inset-left));
+}
+.safe-right {
+  padding-right: max(12px, env(safe-area-inset-right));
+}
+.safe-px {
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+}
+.safe-py {
+  padding-top: max(8px, env(safe-area-inset-top));
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+
+/* Prevent unwanted browser behaviors during game touch play */
+canvas {
+  touch-action: none;
+  -webkit-touch-callout: none;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+

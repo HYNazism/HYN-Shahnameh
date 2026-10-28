@@ -202,46 +202,83 @@ export const CryptoModal: React.FC<Props> = ({
 
             {/* Address Display & Copy */}
             <div className="flex flex-col sm:flex-row items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl">
-              <div className="w-16 h-16 bg-white p-1 rounded-lg flex items-center justify-center shrink-0 shadow-sm">
-                {/* SVG QR Code Simulation */}
-                <div className="w-full h-full bg-slate-950 flex flex-col justify-between p-1 rounded">
-                  <div className="flex justify-between">
-                    <div className="w-3.5 h-3.5 border-2 border-white" />
-                    <div className="w-3.5 h-3.5 border-2 border-white" />
-                  </div>
-                  <div className="w-2 h-2 bg-amber-400 mx-auto" />
-                  <div className="flex justify-between">
-                    <div className="w-3.5 h-3.5 border-2 border-white" />
-                    <div className="w-2 h-2 bg-white" />
-                  </div>
-                </div>
+              <div className="w-16 h-16 bg-white p-1 rounded-lg flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(currentAddress)}`}
+                  alt="QR Code"
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    // Fallback if offline
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
               </div>
 
               <div className="flex-1 w-full overflow-hidden">
-                <span className="text-[10px] text-slate-500 block">
-                  آدرس واریز مستقیم به توسعه‌دهنده ({selectedNetwork.toUpperCase()}):
-                </span>
-                <span className="text-xs font-mono text-amber-200 break-all select-all font-semibold">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] text-slate-400 font-bold block">
+                    آدرس رسمی توسعه‌دهنده ({selectedNetwork.toUpperCase()}):
+                  </span>
+                  {selectedNetwork === 'ton' && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold">
+                      شبکه رسمی TON
+                    </span>
+                  )}
+                  {selectedNetwork === 'trc20' && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                      شبکه TRC-20 (Tron)
+                    </span>
+                  )}
+                  {selectedNetwork === 'bep20' && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300 font-bold">
+                      شبکه BEP-20 (BNB Smart Chain)
+                    </span>
+                  )}
+                  {selectedNetwork === 'eth' && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold">
+                      شبکه Ethereum (ERC-20)
+                    </span>
+                  )}
+                  {selectedNetwork === 'btc' && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 font-bold">
+                      شبکه اصلی بیت‌کوین (BTC Native SegWit)
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs font-mono text-amber-200 break-all select-all font-semibold block leading-tight">
                   {currentAddress}
                 </span>
               </div>
 
-              <button
-                onClick={() => copyToClipboard(currentAddress, selectedNetwork)}
-                className="w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center gap-2"
-              >
-                {copiedKey === selectedNetwork ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-emerald-400">{t.address_copied}</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>{t.copy_address}</span>
-                  </>
+              <div className="flex flex-col sm:flex-row items-center gap-1.5 w-full sm:w-auto">
+                <button
+                  onClick={() => copyToClipboard(currentAddress, selectedNetwork)}
+                  className="w-full sm:w-auto px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center gap-1.5"
+                >
+                  {copiedKey === selectedNetwork ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-400">{t.address_copied}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>{t.copy_address}</span>
+                    </>
+                  )}
+                </button>
+
+                {selectedNetwork === 'ton' && (
+                  <a
+                    href={`ton://transfer/${currentAddress}`}
+                    className="w-full sm:w-auto px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center gap-1"
+                    title="باز کردن در Tonkeeper یا تلگرام ولت"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    <span>Tonkeeper</span>
+                  </a>
                 )}
-              </button>
+              </div>
             </div>
 
             {/* In-Game Tip Preset & Royal Patron Unlock */}

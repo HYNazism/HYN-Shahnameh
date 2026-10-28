@@ -25,6 +25,7 @@ import {
   loadGraphicsTier,
   saveGraphicsTier,
 } from './utils/storage';
+import { CryptoAdCampaign } from './utils/cryptoAdEngine';
 import { TitleScreen } from './components/TitleScreen';
 import { GameCanvas } from './components/GameCanvas';
 import { ArmoryModal } from './components/ArmoryModal';
@@ -38,6 +39,7 @@ import { DuelArena } from './components/DuelArena';
 import { EpisodeSelector } from './components/EpisodeSelector';
 import { SkillTreeModal } from './components/SkillTreeModal';
 import { NaqqalNarrator } from './components/NaqqalNarrator';
+import { GitHubReleasesModal } from './components/GitHubReleasesModal';
 import { EpisodeData } from './types';
 import { SkillSystem } from './game/SkillSystem';
 import { EPISODES_DATA } from './constants/gameData';
@@ -75,6 +77,7 @@ export default function App() {
   const [showStoryPrologue, setShowStoryPrologue] = useState(false);
   const [showEpisodes, setShowEpisodes] = useState(false);
   const [showSkillTree, setShowSkillTree] = useState(false);
+  const [showReleases, setShowReleases] = useState(false);
   const [activeNaqqalEpisode, setActiveNaqqalEpisode] = useState<EpisodeData | null>(null);
   const [adForRespawn, setAdForRespawn] = useState(false);
   const [duelOpponentId, setDuelOpponentId] = useState<string | undefined>(undefined);
@@ -160,7 +163,12 @@ export default function App() {
 
   // Web3 Wallet
   const handleConnectWallet = (type: 'metamask' | 'ton' | 'tron') => {
-    const mockAddr = type === 'metamask' ? '0x3F8...7E2a' : type === 'ton' ? 'EQD...9vOx' : 'TLX...5K3p';
+    const mockAddr =
+      type === 'metamask'
+        ? '0x7Ab...7E9A'
+        : type === 'ton'
+        ? 'UQDR4...6svK'
+        : 'TEZgr...FrL';
     setMonetization(prev => ({
       ...prev,
       connectedWallet: mockAddr,
@@ -232,18 +240,33 @@ export default function App() {
     }));
   };
 
-  // Rewarded Ad claim
-  const handleAdRewardClaimed = (gold: number, gems: number) => {
+  // Rewarded Ad claim with Crypto Auto-Payout into Creator's Wallet
+  const handleAdRewardClaimed = (gold: number, gems: number, campaign?: CryptoAdCampaign) => {
     setProgress(prev => ({
       ...prev,
       gold: prev.gold + gold,
       gems: prev.gems + gems,
     }));
 
+    const rewardUsd = campaign?.rewardValueUsd || 0.045;
+    const currency = campaign?.payoutCurrency || 'TON';
+    const network = campaign?.payoutNetworkKey || monetization.adPayoutNetwork || 'ton';
+    const recipient = monetization.creatorWallets[network] || monetization.creatorWallets.ton;
+
+    const newTx = {
+      id: `tx_ad_${Date.now()}`,
+      itemTitle: `واریز خودکار تبلیغ اسپانسری (${campaign?.networkName || 'TON Ads'})`,
+      amountUsd: rewardUsd,
+      cryptoCurrency: `${currency} (${network.toUpperCase()})`,
+      timestamp: 'هم‌اکنون',
+      payerWallet: recipient,
+    };
+
     setMonetization(prev => ({
       ...prev,
       adViewsCount: prev.adViewsCount + 1,
-      adRevenueUsd: prev.adRevenueUsd + 0.02,
+      adRevenueUsd: prev.adRevenueUsd + rewardUsd,
+      transactions: [newTx, ...prev.transactions].slice(0, 15),
     }));
   };
 
@@ -376,8 +399,13 @@ export default function App() {
     maxHp: selectedHero.maxHp + skillBonuses.bonusHp,
   };
 
+  const isRtl = lang === 'fa' || lang === 'ar';
+
   return (
-    <div className="w-screen h-screen overflow-hidden bg-[#070b14] text-slate-100 flex flex-col font-sans">
+    <div
+      dir={isRtl ? 'rtl' : 'ltr'}
+      className="w-full h-[100dvh] overflow-hidden bg-[#050811] text-slate-100 flex flex-col font-sans select-none"
+    >
       {view === 'TITLE' && (
         <TitleScreen
           selectedHeroId={progress.selectedHero}
@@ -402,6 +430,7 @@ export default function App() {
           onOpenPlayerStore={() => setShowPlayerStore(true)}
           onOpenEpisodes={() => setShowEpisodes(true)}
           onOpenSkillTree={() => setShowSkillTree(true)}
+          onOpenReleases={() => setShowReleases(true)}
         />
       )}
 
@@ -608,10 +637,11 @@ export default function App() {
       {showRewardedAd && (
         <RewardedAdModal
           lang={lang}
+          monetization={monetization}
           isRespawn={adForRespawn}
           onClose={() => setShowRewardedAd(false)}
-          onRewardClaimed={(g, gm) => {
-            handleAdRewardClaimed(g, gm);
+          onRewardClaimed={(g, gm, campaign) => {
+            handleAdRewardClaimed(g, gm, campaign);
             if (adForRespawn && view === 'GAME_OVER') {
               setView('PLAYING');
             }
@@ -627,6 +657,14 @@ export default function App() {
           onClose={() => setShowDevDashboard(false)}
           onSaveSettings={updated => setMonetization(updated)}
           onWithdrawFunds={handleWithdrawFunds}
+        />
+      )}
+
+      {/* GitHub Multi-Platform Releases Modal */}
+      {showReleases && (
+        <GitHubReleasesModal
+          lang={lang}
+          onClose={() => setShowReleases(false)}
         />
       )}
 

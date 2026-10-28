@@ -4,6 +4,7 @@ import { HEROES, STAGES } from '../constants/gameData';
 import { TRANSLATIONS } from '../constants/translations';
 import { LanguageSelector } from './LanguageSelector';
 import { GraphicsSelector } from './GraphicsSelector';
+import { PWAInstallButton } from './PWAInstallButton';
 import {
   Sword,
   Shield,
@@ -22,6 +23,7 @@ import {
   Flame,
   Award,
   ChevronLeft,
+  Github,
 } from 'lucide-react';
 import { sound } from '../utils/audio';
 
@@ -46,6 +48,7 @@ interface Props {
   onOpenEpisodes?: () => void;
   onOpenSkillTree?: () => void;
   onOpenNaqqal?: () => void;
+  onOpenReleases?: () => void;
 }
 
 export const TitleScreen: React.FC<Props> = ({
@@ -69,6 +72,7 @@ export const TitleScreen: React.FC<Props> = ({
   onOpenEpisodes,
   onOpenSkillTree,
   onOpenNaqqal,
+  onOpenReleases,
 }) => {
   const t = TRANSLATIONS[lang];
   const [isMuted, setIsMuted] = React.useState(sound.getIsMuted());
@@ -136,6 +140,8 @@ export const TitleScreen: React.FC<Props> = ({
               </>
             )}
           </div>
+
+          <PWAInstallButton lang={lang} />
 
           <GraphicsSelector
             currentTier={graphicsTier}
@@ -447,6 +453,15 @@ export const TitleScreen: React.FC<Props> = ({
             >
               <BarChart3 className="w-4 h-4 text-purple-400" />
               <span>صندوق سازنده</span>
+            </button>
+
+            <button
+              onClick={onOpenReleases}
+              className="py-2.5 px-3 bg-slate-900/90 hover:bg-slate-800 border border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-300 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm col-span-2 sm:col-span-1"
+              title="خروجی‌های تمام دستگاه‌ها و انتشارهای گیت‌هاب"
+            >
+              <Github className="w-4 h-4 text-emerald-400" />
+              <span>انتشارهای گیت‌هاب</span>
             </button>
           </div>
         </section>

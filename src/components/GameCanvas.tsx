@@ -66,6 +66,28 @@ export const GameCanvas: React.FC<Props> = ({
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(sound.getIsMuted());
 
+  // Portrait orientation warning state
+  const [isPortrait, setIsPortrait] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerHeight > window.innerWidth && window.innerWidth < 800;
+  });
+  const [dismissRotatePrompt, setDismissRotatePrompt] = useState(false);
+
+  useEffect(() => {
+    const checkOrientation = () => {
+      setIsPortrait(window.innerHeight > window.innerWidth && window.innerWidth < 800);
+    };
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
+
+  const isRtl = lang === 'fa' || lang === 'ar';
+
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -194,15 +216,37 @@ export const GameCanvas: React.FC<Props> = ({
   const ragePercentage = Math.max(0, Math.min(100, rage));
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#070b14] overflow-hidden select-none">
+    <div
+      dir={isRtl ? 'rtl' : 'ltr'}
+      className="relative w-full h-full flex flex-col items-center justify-center bg-[#050811] overflow-hidden select-none"
+    >
+      {/* Portrait Orientation Helper Notification */}
+      {isPortrait && !dismissRotatePrompt && (
+        <div className="absolute top-2 inset-x-3 z-45 flex items-center justify-between gap-2 p-2.5 bg-amber-950/95 border-2 border-amber-400 text-amber-200 text-xs rounded-xl shadow-2xl backdrop-blur-md animate-fadeIn">
+          <div className="flex items-center gap-2 font-bold">
+            <span className="text-base animate-bounce">📱</span>
+            <span>{t.rotate_prompt}</span>
+          </div>
+          <button
+            onClick={() => setDismissRotatePrompt(true)}
+            className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] rounded-lg cursor-pointer transition-colors shrink-0"
+          >
+            {t.rotate_dismiss}
+          </button>
+        </div>
+      )}
+
       {/* Top HUD Cluster */}
-      <div className="absolute top-3 inset-x-3 md:inset-x-6 flex items-start justify-between pointer-events-none z-20">
-        {/* Left: Player Vitality & Farreh Frame */}
-        <div className="flex flex-col gap-1.5 pointer-events-auto bg-slate-950/85 p-3 rounded-2xl border border-amber-500/35 shadow-2xl backdrop-blur-md min-w-[210px] md:min-w-[240px]">
+      <div className="absolute top-0 inset-x-0 safe-top safe-px p-3 md:p-5 flex items-start justify-between pointer-events-none z-20">
+        {/* Start Edge: Player Vitality & Farreh Frame */}
+        <div className="flex flex-col gap-1.5 pointer-events-auto bg-slate-950/90 p-2.5 md:p-3 rounded-2xl border border-amber-500/40 shadow-2xl backdrop-blur-md min-w-[190px] md:min-w-[250px]">
           <div className="flex items-center justify-between text-xs font-bold">
             <span className="text-amber-300 flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full ring-2 ring-amber-500/40" style={{ backgroundColor: hero.color }} />
-              <span>{t[hero.nameKey]}</span>
+              <span
+                className="w-2.5 h-2.5 rounded-full ring-2 ring-amber-500/40"
+                style={{ backgroundColor: hero.color }}
+              />
+              <span className="truncate max-w-[110px] md:max-w-none">{t[hero.nameKey]}</span>
             </span>
             <span className="text-slate-300 font-mono tabular-nums text-xs">
               {hp} / {maxHp}
@@ -235,13 +279,13 @@ export const GameCanvas: React.FC<Props> = ({
 
         {/* Center: Boss HP Bar if active */}
         {bossHp !== undefined && bossMaxHp !== undefined && bossHp > 0 && (
-          <div className="pointer-events-auto flex flex-col items-center gap-1.5 bg-red-950/90 px-4 py-2.5 rounded-2xl border border-red-500/70 shadow-2xl backdrop-blur-md max-w-sm w-full mx-2 md:mx-4 animate-fadeIn">
+          <div className="pointer-events-auto flex flex-col items-center gap-1.5 bg-red-950/90 px-3 md:px-4 py-2 rounded-2xl border border-red-500/70 shadow-2xl backdrop-blur-md max-w-sm w-full mx-2 md:mx-4 animate-fadeIn">
             <div className="flex items-center justify-between w-full text-xs font-bold text-red-200">
-              <div className="flex items-center gap-1.5">
-                <ShieldAlert className="w-4 h-4 text-red-400" />
-                <span>{t[stage.bossNameKey]}</span>
+              <div className="flex items-center gap-1.5 truncate">
+                <ShieldAlert className="w-4 h-4 text-red-400 shrink-0" />
+                <span className="truncate">{t[stage.bossNameKey]}</span>
               </div>
-              <span className="font-mono tabular-nums text-red-300 text-xs">
+              <span className="font-mono tabular-nums text-red-300 text-xs shrink-0">
                 {bossHp} / {bossMaxHp}
               </span>
             </div>
@@ -256,10 +300,11 @@ export const GameCanvas: React.FC<Props> = ({
             {onStartBossDuel && (
               <button
                 onClick={() => {
-                  const bossId = stage.id === 3 ? 'div_sepid' : stage.id === 4 ? 'sohrab' : stage.id === 5 ? 'esfandiar' : 'div_sepid';
+                  const bossId =
+                    stage.id === 3 ? 'div_sepid' : stage.id === 4 ? 'sohrab' : stage.id === 5 ? 'esfandiar' : 'div_sepid';
                   onStartBossDuel(bossId);
                 }}
-                className="mt-1 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-[11px] rounded-lg shadow-md flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95 border border-amber-300/40"
+                className="mt-1 px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-[11px] rounded-lg shadow-md flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95 border border-amber-300/40"
               >
                 <Swords className="w-3.5 h-3.5" />
                 <span>دوئل تن‌به‌تن با هماورد (قفل تیغه‌ها)</span>
@@ -268,15 +313,15 @@ export const GameCanvas: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Right: Gold, Gems & Controls */}
+        {/* End Edge: Gold, Gems & Action Buttons */}
         <div className="flex items-center gap-2 pointer-events-auto">
-          <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-950/85 rounded-xl border border-amber-500/30 shadow-md backdrop-blur-md">
-            <div className="flex items-center gap-1.5 text-xs text-amber-400 font-bold">
+          <div className="flex items-center gap-2.5 px-2.5 py-1.5 bg-slate-950/90 rounded-xl border border-amber-500/35 shadow-md backdrop-blur-md">
+            <div className="flex items-center gap-1 text-xs text-amber-400 font-bold">
               <span>🪙</span>
               <span className="font-mono tabular-nums">{runGold}</span>
             </div>
             <span className="text-slate-700">|</span>
-            <div className="flex items-center gap-1.5 text-xs text-sky-400 font-bold">
+            <div className="flex items-center gap-1 text-xs text-sky-400 font-bold">
               <span>💎</span>
               <span className="font-mono tabular-nums">{runGems}</span>
             </div>
@@ -304,10 +349,16 @@ export const GameCanvas: React.FC<Props> = ({
 
       {/* Dynamic Floating Combo Counter Gauge */}
       {comboCount > 1 && (
-        <div className="absolute top-20 left-4 md:left-6 z-20 pointer-events-none animate-fadeInScale">
+        <div
+          className={`absolute top-24 ${
+            isRtl ? 'right-4 md:right-8' : 'left-4 md:left-8'
+          } z-20 pointer-events-none animate-fadeInScale`}
+        >
           <div className="px-3.5 py-1.5 bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 border border-amber-300 rounded-xl shadow-2xl flex items-center gap-2 text-slate-950 font-black text-xs md:text-sm">
             <Zap className="w-4 h-4 fill-slate-950" />
-            <span>{t.combo_label} x{comboCount}</span>
+            <span>
+              {t.combo_label} x{comboCount}
+            </span>
             <span className="bg-slate-950 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold">
               x{comboMultiplier.toFixed(2)}
             </span>
@@ -317,8 +368,8 @@ export const GameCanvas: React.FC<Props> = ({
 
       {/* In-Battle Story Waypoint Narrative Subtitle Banner */}
       {inBattleSubtitle && (
-        <div className="absolute top-20 inset-x-4 max-w-xl mx-auto z-25 pointer-events-none animate-fadeIn">
-          <div className="bg-slate-950/95 border border-amber-500/70 px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur-md text-center flex items-center justify-center gap-2.5">
+        <div className="absolute top-24 inset-x-4 max-w-xl mx-auto z-25 pointer-events-none animate-fadeIn">
+          <div className="bg-slate-950/95 border border-amber-500/70 px-4 py-2 rounded-xl shadow-2xl backdrop-blur-md text-center flex items-center justify-center gap-2.5">
             <Scroll className="w-4 h-4 text-amber-400 shrink-0" />
             <p className="text-xs md:text-sm text-amber-100 italic font-medium leading-relaxed">
               {inBattleSubtitle}
@@ -329,7 +380,7 @@ export const GameCanvas: React.FC<Props> = ({
 
       {/* Story Dialogue Banner (for Chapter 4 Rostam & Sohrab) */}
       {showDialogue && stage.dialogueProseKey && (
-        <div className="absolute top-20 inset-x-4 max-w-xl mx-auto z-30 pointer-events-auto bg-slate-950/95 border-2 border-amber-500/70 p-4 rounded-2xl shadow-2xl backdrop-blur-md flex flex-col gap-2.5 animate-fadeIn">
+        <div className="absolute top-24 inset-x-4 max-w-xl mx-auto z-30 pointer-events-auto bg-slate-950/95 border-2 border-amber-500/70 p-4 rounded-2xl shadow-2xl backdrop-blur-md flex flex-col gap-2.5 animate-fadeIn">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
             <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
               <BookOpen className="w-4 h-4" />
@@ -356,30 +407,33 @@ export const GameCanvas: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Main Game Canvas */}
-      <div className="relative w-full h-full flex items-center justify-center p-0 m-0">
+      {/* Main Game Canvas Container with Automatic Ratio Scale */}
+      <div className="relative w-full h-full flex items-center justify-center p-0 m-0 overflow-hidden bg-black">
         <canvas
           ref={canvasRef}
-          className="w-full h-full object-contain max-h-screen bg-black shadow-2xl"
+          className="w-full h-full object-contain max-h-screen bg-black shadow-2xl touch-none select-none"
+          style={{ aspectRatio: '1200 / 650' }}
         />
 
-        <div className="hidden md:flex absolute bottom-3 inset-x-0 justify-center pointer-events-none z-10">
+        <div className="hidden md:flex absolute bottom-3 inset-x-0 justify-center pointer-events-none z-10 safe-bottom">
           <div className="px-4 py-1.5 bg-slate-950/85 border border-slate-800 rounded-xl text-xs text-slate-400 font-mono tracking-wide shadow-lg backdrop-blur-sm">
             {t.controls_hint}
           </div>
         </div>
 
+        {/* Mobile Floating Virtual D-Pad & Action Controls */}
         <MobileControls
           engine={engineRef.current}
           specialSkillName={t[hero.specialKey]}
           heroId={hero.id}
+          lang={lang}
         />
       </div>
 
       {/* Pause Modal Overlay */}
       {isPaused && (
         <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center z-50 p-4">
-          <div className="bg-[#0b101e] border border-amber-500/50 p-6 rounded-2xl max-w-sm w-full text-center shadow-2xl flex flex-col gap-4 animate-fadeInScale">
+          <div className="bg-[#0b101e] border-2 border-amber-500/60 p-6 rounded-2xl max-w-sm w-full text-center shadow-2xl flex flex-col gap-4 animate-fadeInScale">
             <h2 className="text-2xl font-black text-amber-400 tracking-wide">{t.pause}</h2>
             <p className="text-xs text-slate-300 leading-relaxed">{t[stage.descKey]}</p>
 
@@ -413,3 +467,4 @@ export const GameCanvas: React.FC<Props> = ({
     </div>
   );
 };
+

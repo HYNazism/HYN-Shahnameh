@@ -1,4 +1,4 @@
-import { PlayerProgress, MonetizationState, Language, GraphicsTier } from '../types/game';
+import { PlayerProgress, MonetizationState, Language, GraphicsTier, TouchControlSettings } from '../types/game';
 import { DEFAULT_PROGRESS, DEFAULT_MONETIZATION } from '../constants/gameData';
 
 const PROGRESS_KEY = 'razmnameh_player_progress_v2';
@@ -120,3 +120,39 @@ export function saveLanguage(lang: Language): void {
     console.warn('Failed to save language', e);
   }
 }
+
+const TOUCH_SETTINGS_KEY = 'razmnameh_touch_settings_v1';
+
+export const DEFAULT_TOUCH_SETTINGS: TouchControlSettings = {
+  opacity: 0.8,
+  scale: 'normal',
+  layout: 'right-handed',
+  mode: 'floating',
+  verticalOffset: 16,
+  hapticFeedback: true,
+};
+
+export function loadTouchSettings(): TouchControlSettings {
+  try {
+    const raw = localStorage.getItem(TOUCH_SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        ...DEFAULT_TOUCH_SETTINGS,
+        ...parsed,
+      };
+    }
+  } catch (e) {
+    console.warn('Failed to load touch settings', e);
+  }
+  return { ...DEFAULT_TOUCH_SETTINGS };
+}
+
+export function saveTouchSettings(settings: TouchControlSettings): void {
+  try {
+    localStorage.setItem(TOUCH_SETTINGS_KEY, JSON.stringify(settings));
+  } catch (e) {
+    console.warn('Failed to save touch settings', e);
+  }
+}
+

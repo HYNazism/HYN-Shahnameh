@@ -134,6 +134,15 @@ export interface TransactionRecord {
   payerWallet: string;
 }
 
+export type AdPayoutNetwork = 'ton' | 'usdtTrc20' | 'usdtBep20' | 'eth' | 'btc';
+
+export interface PlayerGeoInfo {
+  countryCode: string;
+  countryName: string;
+  flag: string;
+  regionTier: 'tier1' | 'tier2' | 'mena' | 'global';
+}
+
 export interface MonetizationState {
   connectedWallet: string | null;
   walletType: 'metamask' | 'ton' | 'tron' | null;
@@ -141,8 +150,19 @@ export interface MonetizationState {
   creatorVaultBalanceUsd: number;
   adViewsCount: number;
   adRevenueUsd: number;
+  adPayoutNetwork: AdPayoutNetwork;
   creatorWallets: CreatorWallets;
   transactions: TransactionRecord[];
 }
 
 export type GameView = 'TITLE' | 'PLAYING' | 'DUEL' | 'PAUSED' | 'VICTORY' | 'GAME_OVER' | 'ARMORY' | 'CRYPTO' | 'REWARDED_AD' | 'DEV_DASHBOARD' | 'DAILY_QUESTS' | 'STORE';
+
+export interface TouchControlSettings {
+  opacity: number; // 0.2 to 1.0
+  scale: 'compact' | 'normal' | 'large';
+  layout: 'right-handed' | 'left-handed';
+  mode: 'floating' | 'fixed';
+  verticalOffset: number; // 0 to 60 px from bottom
+  hapticFeedback: boolean;
+}
+

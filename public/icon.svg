@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0f1d"/>
+      <stop offset="50%" stop-color="#141c2e"/>
+      <stop offset="100%" stop-color="#050811"/>
+    </linearGradient>
+    <radialGradient id="goldGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.35"/>
+      <stop offset="60%" stop-color="#d97706" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bladeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#93c5fd"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="goldTrim" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="50%" stop-color="#fef08a"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background Shield -->
+  <rect width="512" height="512" rx="104" fill="url(#bgGrad)"/>
+  <rect width="500" height="500" x="6" y="6" rx="98" fill="none" stroke="url(#goldTrim)" stroke-width="4" opacity="0.6"/>
+  <circle cx="256" cy="256" r="210" fill="url(#goldGlow)"/>
+
+  <!-- Ancient Sun Wheel Pattern -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="8 6" opacity="0.4"/>
+  <circle cx="256" cy="256" r="130" fill="none" stroke="#38bdf8" stroke-width="1.5" opacity="0.3"/>
+
+  <!-- Mythical Simurgh Feather Wings / Sun Rays -->
+  <g opacity="0.75" stroke="#f59e0b" stroke-width="2">
+    <path d="M 256 96 L 256 60 M 256 416 L 256 452 M 96 256 L 60 256 M 416 256 L 452 256" stroke-linecap="round"/>
+    <path d="M 142 142 L 116 116 M 370 370 L 396 396 M 142 370 L 116 396 M 370 142 L 396 116" stroke-linecap="round"/>
+  </g>
+
+  <!-- Crossed Ancient Rostam Blades -->
+  <g transform="translate(256, 256)">
+    <!-- Left Blade -->
+    <g transform="rotate(-35)">
+      <!-- Blade -->
+      <path d="M 0 -180 L 14 -30 L 10 70 L -10 70 L -14 -30 Z" fill="url(#bladeGrad)"/>
+      <path d="M 0 -180 L 0 70" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
+      <!-- Crossguard -->
+      <path d="M -35 70 L 35 70 L 25 82 L -25 82 Z" fill="url(#goldTrim)"/>
+      <!-- Hilt & Pommel -->
+      <rect x="-6" y="82" width="12" height="42" rx="3" fill="#78350f"/>
+      <circle cx="0" cy="132" r="12" fill="url(#goldTrim)"/>
+      <circle cx="0" cy="132" r="5" fill="#ef4444"/>
+    </g>
+
+    <!-- Right Blade -->
+    <g transform="rotate(35)">
+      <!-- Blade -->
+      <path d="M 0 -180 L 14 -30 L 10 70 L -10 70 L -14 -30 Z" fill="url(#bladeGrad)"/>
+      <path d="M 0 -180 L 0 70" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
+      <!-- Crossguard -->
+      <path d="M -35 70 L 35 70 L 25 82 L -25 82 Z" fill="url(#goldTrim)"/>
+      <!-- Hilt & Pommel -->
+      <rect x="-6" y="82" width="12" height="42" rx="3" fill="#78350f"/>
+      <circle cx="0" cy="132" r="12" fill="url(#goldTrim)"/>
+      <circle cx="0" cy="132" r="5" fill="#38bdf8"/>
+    </g>
+
+    <!-- Central Rostam Golden Lion Crest / Simurgh Sigil -->
+    <circle cx="0" cy="20" r="48" fill="#0f172a" stroke="url(#goldTrim)" stroke-width="4"/>
+    <polygon points="0,-15 12,12 -12,12" fill="#f59e0b"/>
+    <circle cx="0" cy="20" r="14" fill="#ef4444" stroke="#fef08a" stroke-width="2"/>
+    <path d="M -24 34 Q 0 44 24 34" stroke="#f59e0b" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>

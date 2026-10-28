@@ -368,12 +368,13 @@ export const DEFAULT_MONETIZATION: MonetizationState = {
   creatorVaultBalanceUsd: 148.50, // Initial accumulated creator vault from player purchases & ads
   adViewsCount: 42,
   adRevenueUsd: 0.84,
+  adPayoutNetwork: 'ton',
   creatorWallets: {
-    usdtTrc20: 'TJYv81B3z6P4QWk2qL9x88V7Mn4R1k2Lm9',
-    usdtBep20: '0x71C694862c8F71B6F68482E2506B828Db4D5d6B1',
-    ton: 'EQD2nmD_lH5f55caK_mStHeSaEr00WDqVQ6VOM4C81IvOgcE',
-    eth: '0x71C694862c8F71B6F68482E2506B828Db4D5d6B1',
-    btc: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+    usdtTrc20: 'TEZgraBLWUAoZK48BeB7YippCXCwwCbFrL',
+    usdtBep20: '0x7Abd8370a0878cCF3bC36811c7a5cC71Ac027E9A',
+    ton: 'UQDR4WPq0mF7e6wpvBKspdsnhe3mXLtBmjgenmSfK-DL6svK',
+    eth: '0x7Abd8370a0878cCF3bC36811c7a5cC71Ac027E9A',
+    btc: 'bc1qqjfn0wdap5dphrx89kp8u7tux6ynj227msrlq4',
   },
   transactions: [
     {
