@@ -1,0 +1,85 @@
+{
+  "version": "1.1.0",
+  "tag": "v1.1.0",
+  "releasedAt": "2026-10-28T16:51:10Z",
+  "assets": [
+    {
+      "id": "windows",
+      "platform": "Windows 10/11 (x64 & ARM64)",
+      "platformFa": "ویندوز ۱۰ و ۱۱ (نسخه اجرایی دسکتاپ)",
+      "filename": "shahnameh-v1.1.0-windows-x64-executable.zip",
+      "latestAlias": "shahnameh-latest-windows-x64.zip",
+      "downloadUrl": "/releases/shahnameh-v1.1.0-windows-x64-executable.zip",
+      "latestDownloadUrl": "/releases/shahnameh-latest-windows-x64.zip",
+      "sizeBytes": 370057,
+      "sizeFormatted": "0.35 MB",
+      "sha256": "a8730cc3f79f86a627a9a29203ac89ee3348e4231d205da78b4a2ce1b0538fd5",
+      "format": ".bat / .exe (Electron & WebView2)"
+    },
+    {
+      "id": "macos",
+      "platform": "macOS Universal (Apple Silicon & Intel)",
+      "platformFa": "مک‌اواس (Apple Silicon M1-M4 و Intel)",
+      "filename": "shahnameh-v1.1.0-macos-universal-app.zip",
+      "latestAlias": "shahnameh-latest-macos-universal.zip",
+      "downloadUrl": "/releases/shahnameh-v1.1.0-macos-universal-app.zip",
+      "latestDownloadUrl": "/releases/shahnameh-latest-macos-universal.zip",
+      "sizeBytes": 369723,
+      "sizeFormatted": "0.35 MB",
+      "sha256": "0a86a87e014df1ea3d5aaac48426eb34ea34dd7f491c3f05bdbbd0cebbc4f8e4",
+      "format": "Razmnameh.app Bundle"
+    },
+    {
+      "id": "linux",
+      "platform": "Linux Desktop & Steam Deck (x64 / ARM64)",
+      "platformFa": "لینوکس و استیم‌دک (نسخه اجرایی .sh / .desktop)",
+      "filename": "shahnameh-v1.1.0-linux-x64-executable.zip",
+      "latestAlias": "shahnameh-latest-linux-x64.zip",
+      "downloadUrl": "/releases/shahnameh-v1.1.0-linux-x64-executable.zip",
+      "latestDownloadUrl": "/releases/shahnameh-latest-linux-x64.zip",
+      "sizeBytes": 369893,
+      "sizeFormatted": "0.35 MB",
+      "sha256": "95ed9a7c041d9455f84150b5159f52b792e23f98604517c33d16529626419500",
+      "format": ".sh / .desktop / Electron"
+    },
+    {
+      "id": "android",
+      "platform": "Android 8.0+ (APK / AAB & Capacitor)",
+      "platformFa": "اندروید (پکیج ساخت خودکار APK و Capacitor)",
+      "filename": "shahnameh-v1.1.0-android-apk-bundle.zip",
+      "latestAlias": "shahnameh-latest-android-apk.zip",
+      "downloadUrl": "/releases/shahnameh-v1.1.0-android-apk-bundle.zip",
+      "latestDownloadUrl": "/releases/shahnameh-latest-android-apk.zip",
+      "sizeBytes": 370022,
+      "sizeFormatted": "0.35 MB",
+      "sha256": "c1ab5583d1088d924b0713d56704dd78080c34adf1360b1f43dc33710ef3b811",
+      "format": "APK Builder + Capacitor"
+    },
+    {
+      "id": "ios",
+      "platform": "iOS & iPadOS 15+ (MobileConfig + Xcode Capacitor)",
+      "platformFa": "آیفون و آیپد (پروفایل نصب مستقیم .mobileconfig و Xcode)",
+      "filename": "shahnameh-v1.1.0-ios-ipados-bundle.zip",
+      "latestAlias": "shahnameh-latest-ios-ipados.zip",
+      "downloadUrl": "/releases/shahnameh-v1.1.0-ios-ipados-bundle.zip",
+      "latestDownloadUrl": "/releases/shahnameh-latest-ios-ipados.zip",
+      "sizeBytes": 369945,
+      "sizeFormatted": "0.35 MB",
+      "sha256": "df6ab20f970fbd0b1300b8ac9744bb7a6b770c78e8c2015b90968e75ccc57d61",
+      "format": ".mobileconfig + Xcode"
+    },
+    {
+      "id": "web",
+      "platform": "Web & Offline PWA (All Browsers & Servers)",
+      "platformFa": "نسخه وب و اپلیکیشن پیش‌رونده آفلاین (PWA)",
+      "filename": "shahnameh-v1.1.0-web-pwa.zip",
+      "latestAlias": "shahnameh-latest-web-pwa.zip",
+      "downloadUrl": "/releases/shahnameh-v1.1.0-web-pwa.zip",
+      "latestDownloadUrl": "/releases/shahnameh-latest-web-pwa.zip",
+      "sizeBytes": 367779,
+      "sizeFormatted": "0.35 MB",
+      "sha256": "8b8b0fb8ba91483da1fce32749a07232f09db69c6c13456f190d3b6832513321",
+      "format": "Static PWA + Service Worker"
+    }
+  ]
+}

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { HeroId, PlayerProgress, Language, GraphicsTier } from '../types/game';
 import { HEROES, STAGES } from '../constants/gameData';
 import { TRANSLATIONS } from '../constants/translations';
+import { CURRENT_RELEASE_INFO } from '../constants/releaseInfo';
 import { QahvehKhanehRenderer } from '../game/QahvehKhanehRenderer';
 import { LanguageSelector } from './LanguageSelector';
 import { GraphicsSelector } from './GraphicsSelector';
@@ -194,8 +195,8 @@ export const TitleScreen: React.FC<Props> = ({
               <h1 className="text-lg md:text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400">
                 {t.app_title}
               </h1>
-              <span className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 rounded">
-                v1.0.5 Release
+              <span className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded">
+                v2.5 حماسی
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-medium">
@@ -556,11 +557,14 @@ export const TitleScreen: React.FC<Props> = ({
 
             <button
               onClick={onOpenReleases}
-              className="py-2.5 px-3 bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-400/60 rounded-xl text-xs font-bold text-emerald-300 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm col-span-2 sm:col-span-1"
-              title="دانلود مستقیم خروجی‌های تمام دستگاه‌ها و انتشارهای گیت‌هاب (v1.0.0 تا v1.0.5)"
+              className="py-2.5 px-3 bg-slate-900/90 hover:bg-slate-800 border border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-300 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm col-span-2 sm:col-span-1"
+              title="خروجی‌های اجرایی تمام دستگاه‌ها و انتشارهای گیت‌هاب"
             >
               <Github className="w-4 h-4 text-emerald-400" />
-              <span>ریلیزهای گیت‌هاب (v1.0.5)</span>
+              <span>انتشارهای گیت‌هاب</span>
+              <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]">
+                {CURRENT_RELEASE_INFO.tag}
+              </span>
             </button>
           </div>
         </section>

@@ -1,34 +1,34 @@
 {
   "latestVersion": "v1.0.5",
-  "builtAt": "2026-10-28T16:15:59.590863+00:00",
+  "builtAt": "2026-10-28T16:36:37.112965+00:00",
   "assets": {
     "web-pwa": {
       "filename": "shahnameh-v1.0.5-web-pwa.zip",
       "url": "/releases/shahnameh-v1.0.5-web-pwa.zip",
-      "sizeBytes": 368967,
-      "sizeFormatted": "360.3 KB",
-      "sha256": "d015ccb02ae0c026221e70c6bc235604f607b0f431ac3569fd1a95d2ce5cdeef"
+      "sizeBytes": 370506,
+      "sizeFormatted": "361.8 KB",
+      "sha256": "6af1c6f1f9b06df413f3f3f1b060d1fce482cd5ddee414f1e4a9f98e041df175"
     },
     "android": {
       "filename": "shahnameh-v1.0.5-android-package.zip",
       "url": "/releases/shahnameh-v1.0.5-android-package.zip",
-      "sizeBytes": 373196,
-      "sizeFormatted": "364.4 KB",
-      "sha256": "74df9e2a0455a810fc9f2275d25d4e9edcddc9a7cbc379e68f120b91f333e8f9"
+      "sizeBytes": 374735,
+      "sizeFormatted": "366.0 KB",
+      "sha256": "6a3a8c1d30f37bb3a52f6f77acbb51f9d0051505241ef9758bc7bec49d40ac43"
     },
     "desktop": {
       "filename": "shahnameh-v1.0.5-desktop-bundle.zip",
       "url": "/releases/shahnameh-v1.0.5-desktop-bundle.zip",
-      "sizeBytes": 370873,
-      "sizeFormatted": "362.2 KB",
-      "sha256": "ea17d0fa8134b6805bbda85770aa3612489b19321a123fe39766b1c72df66cdc"
+      "sizeBytes": 372412,
+      "sizeFormatted": "363.7 KB",
+      "sha256": "6b41d03a02542263dd0915955843f4034d99671a56f1b32daa862c946596eb0e"
     },
     "source": {
       "filename": "shahnameh-v1.0.5-full-source.zip",
       "url": "/releases/shahnameh-v1.0.5-full-source.zip",
-      "sizeBytes": 321685,
-      "sizeFormatted": "314.1 KB",
-      "sha256": "a2be958554733a133fe0e44cf4549ffa878eba7f263a7843dc687b620e02fe80"
+      "sizeBytes": 325322,
+      "sizeFormatted": "317.7 KB",
+      "sha256": "f1ab6b23cf787a7274ec16040813454a9eeb3cfd86ab52f80deb8324c95c776b"
     }
   }
 }

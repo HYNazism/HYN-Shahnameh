@@ -1,12 +1,16 @@
 {
-  "name": "razmnameh-shahnameh",
+  "name": "react-example",
   "private": true,
-  "version": "1.0.5",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "build:releases": "vite build && node scripts/build-releases.js",
+    "release:auto": "node scripts/auto-release.mjs auto",
+    "release:patch": "node scripts/auto-release.mjs patch",
+    "release:minor": "node scripts/auto-release.mjs minor",
+    "release:major": "node scripts/auto-release.mjs major",
     "publish:github": "bash scripts/publish-to-github.sh",
     "generate:icons": "node scripts/generate-icons.js",
     "preview": "vite preview",
