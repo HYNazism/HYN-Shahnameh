@@ -66,6 +66,17 @@ export const GameCanvas: React.FC<Props> = ({
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(sound.getIsMuted());
 
+  // Refs for combat callbacks to prevent engine recreation during combo/finisher updates
+  const onGameOverRef = useRef(onGameOver);
+  const onVictoryRef = useRef(onVictory);
+  const onFinisherLandedRef = useRef(onFinisherLanded);
+
+  useEffect(() => {
+    onGameOverRef.current = onGameOver;
+    onVictoryRef.current = onVictory;
+    onFinisherLandedRef.current = onFinisherLanded;
+  });
+
   // Portrait orientation warning state
   const [isPortrait, setIsPortrait] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -87,7 +98,6 @@ export const GameCanvas: React.FC<Props> = ({
 
   const isRtl = lang === 'fa' || lang === 'ar';
 
-
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -103,10 +113,10 @@ export const GameCanvas: React.FC<Props> = ({
       weaponBonusDamage,
       armorDamageReduction,
       (score, gold, gems) => {
-        onGameOver(score, gold, gems);
+        onGameOverRef.current(score, gold, gems);
       },
       (score, gold, gems) => {
-        onVictory(score, gold, gems);
+        onVictoryRef.current(score, gold, gems);
       },
       (curHp, mHp, curRage, g, gm, bHp, bMHp) => {
         setHp(curHp);
@@ -122,7 +132,7 @@ export const GameCanvas: React.FC<Props> = ({
         setComboMultiplier(mult);
       },
       () => {
-        onFinisherLanded();
+        onFinisherLandedRef.current();
       },
       (subtitleText: string) => {
         setInBattleSubtitle(subtitleText);
@@ -182,7 +192,23 @@ export const GameCanvas: React.FC<Props> = ({
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [hero, stage, weaponBonusDamage, armorDamageReduction, hasSimurghBoots, onGameOver, onVictory, onFinisherLanded]);
+    // Re-create engine only when hero ID, stage ID or simurgh boots change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hero.id, stage.id, hasSimurghBoots]);
+
+  // Dynamically update combat bonuses without resetting player position
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.updateCombatBonuses(weaponBonusDamage, armorDamageReduction);
+    }
+  }, [weaponBonusDamage, armorDamageReduction]);
+
+  // Dynamically update Simurgh feather
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.hasSimurghFeather = hasSimurghFeather;
+    }
+  }, [hasSimurghFeather]);
 
   // Synchronize dynamic graphics tier updates
   useEffect(() => {
@@ -278,40 +304,71 @@ export const GameCanvas: React.FC<Props> = ({
         </div>
 
         {/* Center: Boss HP Bar if active */}
-        {bossHp !== undefined && bossMaxHp !== undefined && bossHp > 0 && (
-          <div className="pointer-events-auto flex flex-col items-center gap-1.5 bg-red-950/90 px-3 md:px-4 py-2 rounded-2xl border border-red-500/70 shadow-2xl backdrop-blur-md max-w-sm w-full mx-2 md:mx-4 animate-fadeIn">
-            <div className="flex items-center justify-between w-full text-xs font-bold text-red-200">
-              <div className="flex items-center gap-1.5 truncate">
-                <ShieldAlert className="w-4 h-4 text-red-400 shrink-0" />
-                <span className="truncate">{t[stage.bossNameKey]}</span>
+        {bossHp !== undefined && bossMaxHp !== undefined && bossHp > 0 && (() => {
+          const bossDisplayName =
+            stage.id === 4
+              ? hero.id === 'gordafarid'
+                ? 'سهراب یل (هماورد دژ سپید)'
+                : hero.id === 'sohrab'
+                ? 'گردآفرید شیرزن (مدافع دژ سپید)'
+                : 'سهراب یل پهلوان توران'
+              : t[stage.bossNameKey];
+
+          const bossDuelId =
+            stage.id === 4
+              ? hero.id === 'sohrab'
+                ? 'gordafarid'
+                : 'sohrab'
+              : stage.id === 3
+              ? 'div_sepid'
+              : stage.id === 5
+              ? 'esfandiar'
+              : 'div_sepid';
+
+          const duelButtonText =
+            stage.id === 4
+              ? hero.id === 'gordafarid'
+                ? 'دوئل حماسی با سهراب در دژ سپید'
+                : hero.id === 'sohrab'
+                ? 'دوئل تن‌به‌تن با گردآفرید شیرزن'
+                : 'دوئل سرنوشت‌ساز رستم و سهراب'
+              : stage.id === 3
+              ? 'دوئل با دیو سپید مازندران'
+              : stage.id === 5
+              ? 'دوئل با اسفندیار رویین‌تن'
+              : 'دوئل تن‌به‌تن با هماورد (قفل تیغه‌ها)';
+
+          return (
+            <div className="pointer-events-auto flex flex-col items-center gap-1.5 bg-red-950/90 px-3 md:px-4 py-2 rounded-2xl border border-red-500/70 shadow-2xl backdrop-blur-md max-w-sm w-full mx-2 md:mx-4 animate-fadeIn">
+              <div className="flex items-center justify-between w-full text-xs font-bold text-red-200">
+                <div className="flex items-center gap-1.5 truncate">
+                  <ShieldAlert className="w-4 h-4 text-red-400 shrink-0" />
+                  <span className="truncate">{bossDisplayName}</span>
+                </div>
+                <span className="font-mono tabular-nums text-red-300 text-xs shrink-0">
+                  {bossHp} / {bossMaxHp}
+                </span>
               </div>
-              <span className="font-mono tabular-nums text-red-300 text-xs shrink-0">
-                {bossHp} / {bossMaxHp}
-              </span>
-            </div>
 
-            <div className="w-full bg-slate-950 rounded-lg h-2.5 overflow-hidden border border-red-800 p-0.5">
-              <div
-                className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 rounded transition-all duration-150"
-                style={{ width: `${Math.max(0, (bossHp / bossMaxHp) * 100)}%` }}
-              />
-            </div>
+              <div className="w-full bg-slate-950 rounded-lg h-2.5 overflow-hidden border border-red-800 p-0.5">
+                <div
+                  className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 rounded transition-all duration-150"
+                  style={{ width: `${Math.max(0, (bossHp / bossMaxHp) * 100)}%` }}
+                />
+              </div>
 
-            {onStartBossDuel && (
-              <button
-                onClick={() => {
-                  const bossId =
-                    stage.id === 3 ? 'div_sepid' : stage.id === 4 ? 'sohrab' : stage.id === 5 ? 'esfandiar' : 'div_sepid';
-                  onStartBossDuel(bossId);
-                }}
-                className="mt-1 px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-[11px] rounded-lg shadow-md flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95 border border-amber-300/40"
-              >
-                <Swords className="w-3.5 h-3.5" />
-                <span>دوئل تن‌به‌تن با هماورد (قفل تیغه‌ها)</span>
-              </button>
-            )}
-          </div>
-        )}
+              {onStartBossDuel && (
+                <button
+                  onClick={() => onStartBossDuel(bossDuelId)}
+                  className="mt-1 px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-[11px] rounded-lg shadow-md flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95 border border-amber-300/40"
+                >
+                  <Swords className="w-3.5 h-3.5" />
+                  <span>{duelButtonText}</span>
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {/* End Edge: Gold, Gems & Action Buttons */}
         <div className="flex items-center gap-2 pointer-events-auto">

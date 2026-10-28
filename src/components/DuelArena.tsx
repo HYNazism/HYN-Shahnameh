@@ -30,6 +30,15 @@ interface DuelRival {
 
 const RIVALS: DuelRival[] = [
   {
+    id: 'rostam',
+    name: 'رستم دستان',
+    title: 'تهمتن ایران‌زمین و پیلتن سیستان',
+    color: '#d97706',
+    accentColor: '#b45309',
+    heroId: 'rostam',
+    heroDef: HEROES.find(h => h.id === 'rostam'),
+  },
+  {
     id: 'sohrab',
     name: 'سهراب یل',
     title: 'تهمتن جوان توران',
@@ -37,6 +46,15 @@ const RIVALS: DuelRival[] = [
     accentColor: '#38bdf8',
     heroId: 'sohrab',
     heroDef: HEROES.find(h => h.id === 'sohrab'),
+  },
+  {
+    id: 'gordafarid',
+    name: 'گردآفرید شیرزن',
+    title: 'مدافع دژ سپید',
+    color: '#059669',
+    accentColor: '#34d399',
+    heroId: 'gordafarid',
+    heroDef: HEROES.find(h => h.id === 'gordafarid'),
   },
   {
     id: 'div_sepid',
@@ -53,15 +71,6 @@ const RIVALS: DuelRival[] = [
     color: '#b45309',
     accentColor: '#fef08a',
     heroId: 'esfandiar',
-  },
-  {
-    id: 'gordafarid',
-    name: 'گردآفرید شیرزن',
-    title: 'مدافع دژ سپید',
-    color: '#059669',
-    accentColor: '#34d399',
-    heroId: 'gordafarid',
-    heroDef: HEROES.find(h => h.id === 'gordafarid'),
   },
 ];
 
@@ -85,12 +94,18 @@ export const DuelArena: React.FC<Props> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<DuelEngine | null>(null);
 
+  const availableRivals = RIVALS.filter(r => r.id !== playerHeroId);
+
   const [selectedOpponent, setSelectedOpponent] = useState<DuelRival>(() => {
-    return (
-      RIVALS.find(r => r.id === initialOpponentId) ||
-      RIVALS.find(r => r.id !== playerHeroId) ||
-      RIVALS[0]
-    );
+    if (initialOpponentId) {
+      const found = RIVALS.find(r => r.id === initialOpponentId);
+      if (found && found.id !== playerHeroId) return found;
+    }
+    // Intelligent contextual pairings
+    if (playerHeroId === 'gordafarid') return RIVALS.find(r => r.id === 'sohrab') || availableRivals[0];
+    if (playerHeroId === 'rostam') return RIVALS.find(r => r.id === 'sohrab') || availableRivals[0];
+    if (playerHeroId === 'sohrab') return RIVALS.find(r => r.id === 'gordafarid') || availableRivals[0];
+    return availableRivals[0] || RIVALS[0];
   });
 
   const [isDuelActive, setIsDuelActive] = useState(false);
@@ -135,10 +150,24 @@ export const DuelArena: React.FC<Props> = ({
       setIsDuelActive(false);
     };
 
+    const playerHeroName =
+      playerHero.id === 'rostam'
+        ? 'رستم دستان'
+        : playerHero.id === 'sohrab'
+        ? 'سهراب یل'
+        : 'گردآفرید شیرزن';
+
+    const playerHeroTitle =
+      playerHero.id === 'gordafarid'
+        ? 'مدافع دژ سپید'
+        : playerHero.id === 'sohrab'
+        ? 'پهلوان جوان توران'
+        : 'پیلتن سیستان و تهمتن ایران';
+
     engine.initDuel(
       {
-        name: playerHero.nameKey === 'rostam' ? 'رستم دستان' : playerHero.nameKey === 'sohrab' ? 'سهراب یل' : 'گردآفرید',
-        title: 'پهلوان ایران‌زمین',
+        name: playerHeroName,
+        title: playerHeroTitle,
         color: playerHero.color,
         accentColor: playerHero.accentColor,
         heroId: playerHero.id,
@@ -274,7 +303,7 @@ export const DuelArena: React.FC<Props> = ({
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 hidden sm:inline">حریف رزم:</span>
             <div className="flex gap-1.5">
-              {RIVALS.map(rival => (
+              {availableRivals.map(rival => (
                 <button
                   key={rival.id}
                   onClick={() => setSelectedOpponent(rival)}
@@ -298,12 +327,12 @@ export const DuelArena: React.FC<Props> = ({
           {/* Player Fighter Card */}
           <div className="flex items-center gap-3 bg-slate-950/90 border border-amber-500/50 p-2.5 rounded-2xl backdrop-blur-md w-64 sm:w-76 shadow-2xl">
             <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-400/60 flex items-center justify-center text-2xl font-bold shrink-0">
-              🦁
+              {playerHero.id === 'gordafarid' ? '🏹' : playerHero.id === 'sohrab' ? '🦅' : '🦁'}
             </div>
             <div className="flex-1 flex flex-col gap-1 overflow-hidden">
               <div className="flex justify-between items-center text-xs font-black">
                 <span className="text-amber-300 truncate">
-                  {playerHero.nameKey === 'rostam' ? 'رستم دستان' : playerHero.nameKey === 'sohrab' ? 'سهراب یل' : 'گردآفرید'}
+                  {playerHero.id === 'rostam' ? 'رستم دستان' : playerHero.id === 'sohrab' ? 'سهراب یل' : 'گردآفرید شیرزن'}
                 </span>
                 <span className="font-mono text-emerald-400 tabular-nums">{p1Hp}%</span>
               </div>
@@ -342,7 +371,7 @@ export const DuelArena: React.FC<Props> = ({
           {/* Opponent Fighter Card */}
           <div className="flex items-center gap-3 bg-slate-950/90 border border-rose-500/50 p-2.5 rounded-2xl backdrop-blur-md w-64 sm:w-76 shadow-2xl flex-row-reverse text-right">
             <div className="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-400/60 flex items-center justify-center text-2xl font-bold shrink-0">
-              ⚔️
+              {selectedOpponent.heroId === 'gordafarid' ? '🏹' : selectedOpponent.heroId === 'sohrab' ? '🦅' : selectedOpponent.heroId === 'div_sepid' ? '👹' : selectedOpponent.heroId === 'esfandiar' ? '👑' : '🦁'}
             </div>
             <div className="flex-1 flex flex-col gap-1 overflow-hidden">
               <div className="flex justify-between items-center text-xs font-black flex-row-reverse">
@@ -386,11 +415,28 @@ export const DuelArena: React.FC<Props> = ({
               ⚔️
             </div>
             <h3 className="text-xl md:text-2xl font-black text-amber-300">
-              رویارویی تن‌به‌تن: {playerHero.nameKey === 'rostam' ? 'رستم دستان' : playerHero.nameKey} در برابر {selectedOpponent.name}
+              {playerHero.id === 'gordafarid' && selectedOpponent.id === 'sohrab'
+                ? 'رزم تاریخی گردآفرید شیرزن و سهراب یل در دژ سپید'
+                : playerHero.id === 'rostam' && selectedOpponent.id === 'sohrab'
+                ? 'رزم تراژیک و سرنوشت‌ساز رستم تهمتن و سهراب یل'
+                : playerHero.id === 'rostam' && selectedOpponent.id === 'div_sepid'
+                ? 'خوان هفتم رستم: نبرد مرگبار در غار دیو سپید مازندران'
+                : playerHero.id === 'rostam' && selectedOpponent.id === 'esfandiar'
+                ? 'رزم دو جهان‌پهلوان: رستم دستان و اسفندیار رویین‌تن'
+                : `رویارویی تن‌به‌تن: ${playerHero.id === 'rostam' ? 'رستم دستان' : playerHero.id === 'sohrab' ? 'سهراب یل' : 'گردآفرید شیرزن'} در برابر ${selectedOpponent.name}`}
             </h3>
-            <p className="text-xs text-slate-300 max-w-md mt-2 leading-relaxed italic">
-              «به گود اندر آ و هنر برنمای / که جز نیزه و تیغ ناید به کار»
-              <br />
+            <p className="text-xs text-slate-300 max-w-lg mt-2 leading-relaxed whitespace-pre-line italic">
+              {playerHero.id === 'gordafarid' && selectedOpponent.id === 'sohrab'
+                ? '«چو رخسار بنمود گردآفرید / شگفت آمدش زان زن پاک‌دید\nبدو گفت کای نازنینِ دلیر / مرو تیز بر کامِ بُرّانْ‌شیر»'
+                : playerHero.id === 'rostam' && selectedOpponent.id === 'sohrab'
+                ? '«یکی داستان است پر آبِ چشم / دل نازک از رستم آید به خشم\nبرآویخت با پور خود پهلوان / ندانست فرزند را در جهان»'
+                : playerHero.id === 'rostam' && selectedOpponent.id === 'div_sepid'
+                ? '«بیامد به غار اندرون پیلتن / بدید آن سیه‌دیوِ تاریک‌تن\nچو پیل ژیان رستم نامدار / بیامد به جنگ سپیددیو خوار»'
+                : playerHero.id === 'rostam' && selectedOpponent.id === 'esfandiar'
+                ? '«که گوید برو دست رستم ببند / نبندد مرا دست چرخ بلند\nدو جنگی چو شیران برآویختند / همی خون ز اندام‌ها ریختند»'
+                : '«به گود اندر آ و هنر برنمای / که جز نیزه و تیغ ناید به کار»'}
+            </p>
+            <p className="text-[11px] text-amber-400/90 mt-2 font-medium">
               هنگام برخورد همزمان سلاح‌ها، تیغه‌ها قفل شده و با تپ سریع حریف را به عقب بران!
             </p>
 

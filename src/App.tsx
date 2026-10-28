@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   GameView,
   HeroId,
@@ -293,7 +293,7 @@ export default function App() {
   };
 
   // Combo finisher callback to advance daily quest 1
-  const handleFinisherLanded = () => {
+  const handleFinisherLanded = useCallback(() => {
     setProgress(prev => {
       const updatedQuests = prev.dailyQuests.map(q => {
         if (q.id === 'daily_combo_finisher' && !q.isCompleted) {
@@ -313,16 +313,16 @@ export default function App() {
         dailyQuests: updatedQuests,
       };
     });
-  };
+  }, []);
 
   // Run outcomes
-  const handleGameOver = (score: number, runGold: number, runGems: number) => {
-    setLastRunStats({
+  const handleGameOver = useCallback((score: number, runGold: number, runGems: number) => {
+    setLastRunStats(prev => ({
       score,
       gold: runGold,
       gems: runGems,
-      stageId: progress.currentStage,
-    });
+      stageId: prev.stageId,
+    }));
     setProgress(prev => ({
       ...prev,
       gold: prev.gold + runGold,
@@ -330,15 +330,15 @@ export default function App() {
       highScore: Math.max(prev.highScore, score),
     }));
     setView('GAME_OVER');
-  };
+  }, []);
 
-  const handleVictory = (score: number, runGold: number, runGems: number) => {
-    setLastRunStats({
+  const handleVictory = useCallback((score: number, runGold: number, runGems: number) => {
+    setLastRunStats(prev => ({
       score,
       gold: runGold,
       gems: runGems,
-      stageId: progress.currentStage,
-    });
+      stageId: prev.stageId,
+    }));
 
     setProgress(prev => {
       const completed = prev.completedStages.includes(prev.currentStage)
@@ -368,7 +368,7 @@ export default function App() {
       };
     });
     setView('VICTORY');
-  };
+  }, []);
 
   const selectedHero = HEROES.find(h => h.id === progress.selectedHero) || HEROES[0];
   const selectedStage = STAGES.find(s => s.id === progress.currentStage) || STAGES[0];

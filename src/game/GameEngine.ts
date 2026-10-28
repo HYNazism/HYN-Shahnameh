@@ -1,5 +1,7 @@
 import { HeroDef, StageDef, GraphicsTier } from '../types/game';
 import { SHAHNAMEH_LORE } from '../constants/shahnamehLore';
+import { PersianMiniatureEnvironment } from './PersianMiniatureEnvironment';
+import { QahvehKhanehRenderer } from './QahvehKhanehRenderer';
 import { sound } from '../utils/audio';
 
 export interface InputState {
@@ -118,6 +120,8 @@ export class GameEngine {
   private onComboUpdate: (comboCount: number, multiplier: number) => void;
   private onFinisherLanded: () => void;
   private onNarrativeMilestone: (text: string) => void;
+  public hasSimurghBoots: boolean = false;
+  private miniatureEnv: PersianMiniatureEnvironment = new PersianMiniatureEnvironment();
 
   // Running State & Hit-Stop Feedback
   private isRunning: boolean = false;
@@ -234,6 +238,7 @@ export class GameEngine {
     this.onComboUpdate = onComboUpdate;
     this.onFinisherLanded = onFinisherLanded;
     this.onNarrativeMilestone = onNarrativeMilestone;
+    this.hasSimurghBoots = hasSimurghBoots;
 
     this.player.maxHp = hero.maxHp;
     this.player.hp = hero.maxHp;
@@ -421,6 +426,11 @@ export class GameEngine {
     sound.playVictory();
   }
 
+  public updateCombatBonuses(weaponBonus: number, armorReduction: number) {
+    this.weaponBonusDamage = weaponBonus;
+    this.armorDamageReduction = armorReduction;
+  }
+
   private loop = (timestamp: number) => {
     if (!this.isRunning) return;
 
@@ -452,13 +462,37 @@ export class GameEngine {
     if (lore) {
       if (!this.narrativePassed.start && this.player.x > 300) {
         this.narrativePassed.start = true;
-        this.onNarrativeMilestone(lore.battleStartSubtitle);
+        let msg = lore.battleStartSubtitle;
+        if (this.stage.id === 4) {
+          if (this.hero.id === 'gordafarid') {
+            msg = 'گردآفرید شیرزن: «تا جان در تن دارم، نخواهم گذاشت پرچم توران بر فراز دژ سپید افراشته شود!»';
+          } else if (this.hero.id === 'sohrab') {
+            msg = 'سهراب یل: «ای مدافعان دژ سپید! هماوردی نامدار به میدان فرستید که تیغ من تشنه رزم است!»';
+          }
+        }
+        this.onNarrativeMilestone(msg);
       } else if (!this.narrativePassed.mid && this.player.x > 1500) {
         this.narrativePassed.mid = true;
-        this.onNarrativeMilestone(lore.battleMidSubtitle);
+        let msg = lore.battleMidSubtitle;
+        if (this.stage.id === 4) {
+          if (this.hero.id === 'gordafarid') {
+            msg = 'سهراب از فراز اسب: «کدام دلاور است که این‌گونه چابک با کمان و کمند راه بر سپاه من بسته؟ نقاب از رخ برگیر!»';
+          } else if (this.hero.id === 'sohrab') {
+            msg = 'سهراب با خویشتن: «آیا در این دیار نشانی از پدرم رستم تهمتن خواهم یافت، یا تقدیر رازی دگر در آستین دارد؟»';
+          }
+        }
+        this.onNarrativeMilestone(msg);
       } else if (!this.narrativePassed.boss && this.player.x > 2600) {
         this.narrativePassed.boss = true;
-        this.onNarrativeMilestone(lore.bossConfrontationSubtitle);
+        let msg = lore.bossConfrontationSubtitle;
+        if (this.stage.id === 4) {
+          if (this.hero.id === 'gordafarid') {
+            msg = 'سهراب یل به پیش می‌تازد: «ای شیرزن دژ سپید! تیغ دمشقی من در نیام نمی‌ماند؛ به گود نبرد درآ!»';
+          } else if (this.hero.id === 'sohrab') {
+            msg = 'گردآفرید شیرزن کمان برمی‌کشد: «سهراب! بدان که زنان ایران‌زمین نیز در گاهِ رزم، شیرافکن و رویین‌تنند!»';
+          }
+        }
+        this.onNarrativeMilestone(msg);
       }
     }
 
@@ -1213,221 +1247,8 @@ export class GameEngine {
   }
 
   private renderParallaxBackground(ctx: CanvasRenderingContext2D, w: number, h: number) {
-    const isUltra = this.graphicsTier === 'ultra';
-    const isHigh = this.graphicsTier === 'high';
     const time = performance.now() * 0.001;
-
-    // Layer 1: Grand Celestial Sky & Atmosphere
-    const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
-    skyGrad.addColorStop(0, this.stage.bgGradient[0]);
-    skyGrad.addColorStop(0.7, this.stage.bgGradient[1]);
-    skyGrad.addColorStop(1, '#05070f');
-    ctx.fillStyle = skyGrad;
-    ctx.fillRect(0, 0, w, h);
-
-    // Celestial Body (Sun / Moon)
-    const moonX = w * 0.72 - this.cameraX * 0.04;
-    const moonY = 110;
-    const isFireStage = this.stage.id === 2 || this.stage.id === 5;
-
-    // Radial Celestial Corona
-    const moonGrad = ctx.createRadialGradient(moonX, moonY, 15, moonX, moonY, 95);
-    moonGrad.addColorStop(0, isFireStage ? '#ffedd5' : '#fef08a');
-    moonGrad.addColorStop(0.3, isFireStage ? '#f97316' : '#f59e0b');
-    moonGrad.addColorStop(0.7, isFireStage ? 'rgba(220, 38, 38, 0.25)' : 'rgba(217, 119, 6, 0.2)');
-    moonGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = moonGrad;
-    ctx.beginPath();
-    ctx.arc(moonX, moonY, 95, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Solid Orb Core
-    ctx.fillStyle = isFireStage ? '#ffedd5' : '#fffbeb';
-    ctx.beginPath();
-    ctx.arc(moonX, moonY, 26, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Volumetric God-Rays in High & Ultra Tiers
-    if (isHigh || isUltra) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'screen';
-      const rayAngles = [-0.55, -0.35, -0.15, 0.1, 0.3, 0.5];
-      rayAngles.forEach((angle, idx) => {
-        const rayGrad = ctx.createLinearGradient(moonX, moonY, moonX + Math.sin(angle) * 600, moonY + Math.cos(angle) * 600);
-        const rayAlpha = (isUltra ? 0.09 : 0.05) + Math.sin(time * 0.8 + idx) * 0.02;
-        rayGrad.addColorStop(0, `rgba(254, 240, 138, ${rayAlpha * 1.5})`);
-        rayGrad.addColorStop(0.6, `rgba(245, 158, 11, ${rayAlpha})`);
-        rayGrad.addColorStop(1, 'transparent');
-
-        ctx.fillStyle = rayGrad;
-        ctx.beginPath();
-        ctx.moveTo(moonX - 10, moonY - 10);
-        ctx.lineTo(moonX + Math.sin(angle - 0.08) * 700, moonY + Math.cos(angle - 0.08) * 700);
-        ctx.lineTo(moonX + Math.sin(angle + 0.08) * 700, moonY + Math.cos(angle + 0.08) * 700);
-        ctx.closePath();
-        ctx.fill();
-      });
-      ctx.restore();
-    }
-
-    // Low Tier: Streamlined Single Mountain Ridge
-    if (this.graphicsTier === 'low') {
-      ctx.fillStyle = '#0f172a';
-      ctx.beginPath();
-      ctx.moveTo(0, h);
-      for (let x = 0; x <= w + 200; x += 180) {
-        ctx.lineTo(x, 360 + Math.sin(x * 0.02) * 60);
-      }
-      ctx.lineTo(w, h);
-      ctx.fill();
-      return;
-    }
-
-    // Layer 2: Mighty Alborz Range & Mount Damavand (Parallax Factor: 0.09)
-    const mtnOffset = -this.cameraX * 0.09;
-    ctx.fillStyle = isFireStage ? '#1c0808' : '#14142b';
-    ctx.beginPath();
-    ctx.moveTo(0, h);
-    for (let x = 0; x <= w + 240; x += 160) {
-      const peakX = x + (mtnOffset % 160);
-      const peakY = 240 + Math.sin(x * 0.015) * 80;
-      ctx.lineTo(peakX, peakY);
-      ctx.lineTo(peakX + 80, peakY + 70);
-    }
-    ctx.lineTo(w, h);
-    ctx.fill();
-
-    // Mount Damavand Conical Summit with Snow Mantle
-    const damavandX = ((w * 0.46 + mtnOffset) % (w + 400)) - 80;
-    const damavandY = 175;
-    const damavandW = 260;
-
-    // Mountain Body
-    ctx.fillStyle = isFireStage ? '#280c0c' : '#1b1b38';
-    ctx.beginPath();
-    ctx.moveTo(damavandX - damavandW / 2, h);
-    ctx.lineTo(damavandX, damavandY);
-    ctx.lineTo(damavandX + damavandW / 2, h);
-    ctx.closePath();
-    ctx.fill();
-
-    // Damavand Snowy Cap
-    ctx.fillStyle = isFireStage ? '#fca5a5' : '#e2e8f0';
-    ctx.beginPath();
-    ctx.moveTo(damavandX - 38, damavandY + 55);
-    ctx.lineTo(damavandX, damavandY);
-    ctx.lineTo(damavandX + 38, damavandY + 55);
-    ctx.lineTo(damavandX + 18, damavandY + 45);
-    ctx.lineTo(damavandX, damavandY + 52);
-    ctx.lineTo(damavandX - 18, damavandY + 45);
-    ctx.closePath();
-    ctx.fill();
-
-    // Ascending Sulfur Vapor / Mist Plume from Damavand Crater in High/Ultra
-    if (isHigh || isUltra) {
-      const vaporY = damavandY - 14 + Math.sin(time * 2) * 4;
-      ctx.fillStyle = 'rgba(241, 245, 249, 0.12)';
-      ctx.beginPath();
-      ctx.arc(damavandX, vaporY, 14, 0, Math.PI * 2);
-      ctx.arc(damavandX + 8, vaporY - 12, 20, 0, Math.PI * 2);
-      ctx.arc(damavandX - 6, vaporY - 22, 26, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Golden Simurgh (سیمرغ) Soaring Silhouetted in Distance
-    const simurghX = ((w * 0.65 - this.cameraX * 0.05 + time * 35) % (w + 300)) - 100;
-    const simurghY = 135 + Math.sin(time * 1.5) * 18;
-    const wingFlap = Math.sin(time * 3.5) * 12;
-
-    ctx.save();
-    ctx.fillStyle = '#f59e0b';
-    ctx.shadowColor = '#fbbf24';
-    ctx.shadowBlur = isUltra ? 8 : 0;
-    // Simurgh Body
-    ctx.beginPath();
-    ctx.ellipse(simurghX, simurghY, 11, 4, 0.1, 0, Math.PI * 2);
-    ctx.fill();
-    // Simurgh Wings
-    ctx.beginPath();
-    ctx.moveTo(simurghX - 4, simurghY);
-    ctx.quadraticCurveTo(simurghX, simurghY - 18 + wingFlap, simurghX + 16, simurghY - 24 + wingFlap);
-    ctx.quadraticCurveTo(simurghX + 6, simurghY - 8, simurghX + 4, simurghY);
-    ctx.fill();
-    // Simurgh Flowing Tail Feathers
-    ctx.beginPath();
-    ctx.moveTo(simurghX - 10, simurghY);
-    ctx.quadraticCurveTo(simurghX - 22, simurghY + 6, simurghX - 32 + Math.sin(time * 3) * 6, simurghY + 12);
-    ctx.quadraticCurveTo(simurghX - 20, simurghY + 4, simurghX - 8, simurghY + 2);
-    ctx.fill();
-    ctx.restore();
-
-    // Layer 3: Ancient Persian Fortresses & Persepolis Pillars (Parallax Factor: 0.24)
-    const midOffset = -this.cameraX * 0.24;
-    ctx.fillStyle = isFireStage ? '#130404' : '#0b0f19';
-    ctx.beginPath();
-    ctx.moveTo(0, h);
-    for (let x = 0; x <= w + 200; x += 130) {
-      const peakX = x + (midOffset % 130);
-      const peakY = 360 + Math.cos(x * 0.02) * 45;
-      ctx.lineTo(peakX, peakY);
-    }
-    ctx.lineTo(w, h);
-    ctx.fill();
-
-    // Persepolis Columns (تخت جمشید) & Achaemenid Fortress Merlons (کنگره‌ها)
-    const pillarCount = 6;
-    for (let pIdx = 0; pIdx < pillarCount; pIdx++) {
-      const colX = ((pIdx * 280 + midOffset * 0.8) % (w + 400)) - 60;
-      const colBaseY = 460;
-      const colHeight = 110;
-
-      // Fortress Wall Crenellations
-      ctx.fillStyle = '#090d16';
-      ctx.fillRect(colX - 40, colBaseY - colHeight + 35, 80, 16);
-      for (let merlon = 0; merlon < 4; merlon++) {
-        ctx.fillRect(colX - 35 + merlon * 20, colBaseY - colHeight + 25, 12, 12);
-      }
-
-      // Persepolis Column Shaft (Fluted)
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(colX - 7, colBaseY - colHeight + 45, 14, colHeight - 45);
-
-      // Fluting Lines
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(colX - 4, colBaseY - colHeight + 45, 2, colHeight - 45);
-      ctx.fillRect(colX + 2, colBaseY - colHeight + 45, 2, colHeight - 45);
-
-      // Double-Bull Column Capital (سرستون تخت جمشید)
-      ctx.fillStyle = '#475569';
-      ctx.fillRect(colX - 16, colBaseY - colHeight + 38, 32, 8);
-      // Left Bull Head
-      ctx.beginPath();
-      ctx.moveTo(colX - 16, colBaseY - colHeight + 38);
-      ctx.lineTo(colX - 22, colBaseY - colHeight + 30);
-      ctx.lineTo(colX - 10, colBaseY - colHeight + 36);
-      ctx.fill();
-      // Right Bull Head
-      ctx.beginPath();
-      ctx.moveTo(colX + 16, colBaseY - colHeight + 38);
-      ctx.lineTo(colX + 22, colBaseY - colHeight + 30);
-      ctx.lineTo(colX + 10, colBaseY - colHeight + 36);
-      ctx.fill();
-    }
-
-    // Layer 4: Floating Atmospheric Fog & Golden Motes (High & Ultra)
-    if (isHigh || isUltra) {
-      ctx.fillStyle = isFireStage ? 'rgba(239, 68, 68, 0.05)' : 'rgba(255, 255, 255, 0.04)';
-      const cloudTime = time * 20;
-      for (let i = 0; i < 5; i++) {
-        const cx = ((i * 300 + cloudTime - this.cameraX * 0.32) % (w + 400)) - 100;
-        const cy = 200 + i * 36;
-        ctx.beginPath();
-        ctx.arc(cx, cy, 65, 0, Math.PI * 2);
-        ctx.arc(cx + 55, cy - 8, 80, 0, Math.PI * 2);
-        ctx.arc(cx + 110, cy + 2, 55, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
+    this.miniatureEnv.render(ctx, w, h, this.cameraX, this.stage.id, this.graphicsTier, time);
   }
 
   private renderPlatforms(ctx: CanvasRenderingContext2D) {
@@ -1783,467 +1604,32 @@ export class GameEngine {
 
   private renderPlayer(ctx: CanvasRenderingContext2D) {
     const p = this.player;
-    const isUltra = this.graphicsTier === 'ultra';
-    const isHigh = this.graphicsTier === 'high';
-    const time = performance.now() * 0.001;
 
     ctx.save();
     ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
-    if (p.facing === -1) {
-      ctx.scale(-1, 1);
-    }
 
     if (p.isInvulnerable && Math.floor(performance.now() / 80) % 2 === 0) {
       ctx.globalAlpha = 0.45;
     }
 
-    const halfW = p.w / 2;
-    const halfH = p.h / 2;
-
-    // 1. Dynamic Contact Shadow
-    if (isHigh || isUltra) {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-      ctx.beginPath();
-      ctx.ellipse(0, halfH + 2, 18, 5, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // 2. Divine Farreh Aura (هاله نورانی فرّه ایزدی)
-    if (p.rage > 0) {
-      const rageRatio = Math.min(1.0, p.rage / p.maxRage);
-      const auraRadius = 26 + rageRatio * 20;
-
-      // Soft Radial Farreh Glow
-      const auraGrad = ctx.createRadialGradient(0, -4, 10, 0, -4, auraRadius);
-      auraGrad.addColorStop(0, `rgba(254, 240, 138, ${0.15 + rageRatio * 0.35})`);
-      auraGrad.addColorStop(0.6, `rgba(245, 158, 11, ${0.12 + rageRatio * 0.28})`);
-      auraGrad.addColorStop(1, 'transparent');
-      ctx.fillStyle = auraGrad;
-      ctx.beginPath();
-      ctx.arc(0, -4, auraRadius, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Rotating Golden Farreh Ray Petals in High/Ultra
-      if (isHigh || isUltra) {
-        const rayCount = rageRatio > 0.65 ? 8 : 5;
-        ctx.strokeStyle = `rgba(254, 240, 138, ${0.25 + rageRatio * 0.45})`;
-        ctx.lineWidth = 1.5;
-        for (let r = 0; r < rayCount; r++) {
-          const rayAngle = time * 3.0 + (r * Math.PI * 2) / rayCount;
-          ctx.beginPath();
-          ctx.moveTo(Math.cos(rayAngle) * 18, -4 + Math.sin(rayAngle) * 18);
-          ctx.lineTo(Math.cos(rayAngle) * auraRadius, -4 + Math.sin(rayAngle) * auraRadius);
-          ctx.stroke();
-        }
-      }
-    }
-
-    // 3. Multi-Segment Billowing Royal Cape
-    ctx.fillStyle = this.hero.capeColor;
-    const capeWind = Math.sin(p.animFrame * 0.8) * 8;
-    const capeVelLag = (p.vx / 320) * -12;
-    ctx.beginPath();
-    ctx.moveTo(-8, -halfH + 14);
-    ctx.quadraticCurveTo(
-      -halfW - 12 + capeWind + capeVelLag,
-      -halfH + 28,
-      -halfW - 18 + capeWind * 1.5 + capeVelLag * 1.4,
-      halfH + 4
-    );
-    ctx.lineTo(-halfW - 4, halfH + 2);
-    ctx.quadraticCurveTo(-halfW, halfH - 12, -2, -halfH + 16);
-    ctx.closePath();
-    ctx.fill();
-
-    // Cape Golden Hem Embroidery in Ultra
-    if (isUltra) {
-      ctx.strokeStyle = '#fef08a';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-
-    // 4. Legs & Pahlavani Boots
-    ctx.fillStyle = '#1e293b';
-    const legOffset = p.vx !== 0 ? Math.sin(p.animFrame) * 7 : 0;
-    // Left Leg
-    ctx.fillRect(-12 + legOffset, halfH - 18, 9, 18);
-    // Right Leg
-    ctx.fillRect(2 - legOffset, halfH - 18, 9, 18);
-
-    // Leather Boots Trim & Knee Guards
-    ctx.fillStyle = '#b45309';
-    ctx.fillRect(-13 + legOffset, halfH - 10, 11, 10);
-    ctx.fillRect(1 - legOffset, halfH - 10, 11, 10);
-    ctx.fillStyle = '#fef08a';
-    ctx.fillRect(-11 + legOffset, halfH - 11, 7, 2);
-    ctx.fillRect(3 - legOffset, halfH - 11, 7, 2);
-
-    // Dynamic Idle Breathing sway
-    const idleBreath = p.vx === 0 ? Math.sin(time * 3.6) * 1.5 : 0;
-
-    // 5. Torso & Armor (Babr-e Bayan for Rostam / Scale Mail for Sohrab)
-    if (this.hero.id === 'rostam') {
-      // Babr-e Bayan (ببر بیان) Tawny Tiger Pelt over Golden Chainmail
-      ctx.fillStyle = '#d97706';
-      ctx.fillRect(-halfW + 4, -halfH + 14 + idleBreath, p.w - 8, halfH + 2);
-
-      // Black Tiger Fur Stripes on Cuirass
-      ctx.fillStyle = '#18181b';
-      for (let s = 0; s < 4; s++) {
-        const sy = -halfH + 17 + idleBreath + s * 6;
-        ctx.beginPath();
-        ctx.moveTo(-halfW + 5, sy);
-        ctx.lineTo(-halfW + 12, sy + 2);
-        ctx.lineTo(-halfW + 5, sy + 4);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(halfW - 5, sy + 1);
-        ctx.lineTo(halfW - 12, sy + 3);
-        ctx.lineTo(halfW - 5, sy + 5);
-        ctx.closePath();
-        ctx.fill();
-      }
-
-      // Golden Lion-Embossed Shoulder Pauldron (سرشانه زرین شیرنشان)
-      ctx.fillStyle = '#d4af37';
-      ctx.beginPath();
-      ctx.arc(-halfW + 2, -halfH + 16 + idleBreath, 6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#fef08a';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    } else if (this.hero.id === 'sohrab') {
-      // Turquoise & Silver Interlocking Scale Mail (زره پولادین توران)
-      ctx.fillStyle = '#0891b2';
-      ctx.fillRect(-halfW + 4, -halfH + 14 + idleBreath, p.w - 8, halfH + 2);
-
-      // Scale Mail Pattern
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 1;
-      for (let scY = -halfH + 16 + idleBreath; scY < 0; scY += 5) {
-        for (let scX = -halfW + 7; scX < halfW - 7; scX += 6) {
-          ctx.beginPath();
-          ctx.arc(scX, scY, 2.5, 0, Math.PI);
-          ctx.stroke();
-        }
-      }
-
-      // Mohreh-ye Rostam (مهره رستم) Glowing Talisman Armlet on Left Arm
-      ctx.fillStyle = '#ef4444';
-      ctx.shadowColor = '#f87171';
-      ctx.shadowBlur = 6;
-      ctx.beginPath();
-      ctx.arc(-halfW + 1, -halfH + 24 + idleBreath, 3.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = '#fef08a';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      // Silver Shoulder Pauldron
-      ctx.fillStyle = '#94a3b8';
-      ctx.beginPath();
-      ctx.arc(-halfW + 2, -halfH + 16 + idleBreath, 5.5, 0, Math.PI * 2);
-      ctx.fill();
-    } else {
-      // Gordafarid Embroidered Persian Leather Armor
-      ctx.fillStyle = '#059669';
-      ctx.fillRect(-halfW + 4, -halfH + 14 + idleBreath, p.w - 8, halfH + 2);
-
-      // Pearl Embroidery Borders
-      ctx.fillStyle = '#f8fafc';
-      for (let py = -halfH + 16 + idleBreath; py <= 2; py += 5) {
-        ctx.fillRect(-halfW + 5, py, 2, 2);
-        ctx.fillRect(halfW - 7, py, 2, 2);
-      }
-    }
-
-    // Pahlavani Golden Belt with Lion Buckle
-    ctx.fillStyle = '#78350f';
-    ctx.fillRect(-halfW + 3, -1 + idleBreath, p.w - 6, 5);
-    ctx.fillStyle = '#fef08a';
-    ctx.beginPath();
-    ctx.arc(0, 1.5 + idleBreath, 4.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#b45309';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // 6. Head & Hyper-Detailed Facial Features
-    ctx.fillStyle = '#fed7aa';
-    ctx.beginPath();
-    ctx.arc(0, -halfH + 8 + idleBreath, 11, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Detailed Eyes (White Sclera + Iris + Specular Sheen)
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(2, -halfH + 6 + idleBreath, 4, 3);
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(3, -halfH + 6 + idleBreath, 2.5, 2.5);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(3.5, -halfH + 6.5 + idleBreath, 1, 1);
-
-    // Eyebrows
-    ctx.fillStyle = '#18181b';
-    ctx.fillRect(1.5, -halfH + 4 + idleBreath, 5, 1.5);
-
-    // Hero-Specific Facial Characteristics
-    if (this.hero.id === 'rostam') {
-      // Prominent Persian Warrior Curved Mustache (سبیل رستم دستان)
-      ctx.strokeStyle = '#18181b';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(0, -halfH + 11 + idleBreath);
-      ctx.quadraticCurveTo(5, -halfH + 12 + idleBreath, 8, -halfH + 9 + idleBreath);
-      ctx.stroke();
-
-      // Pahlavani Trimmed Full Beard
-      ctx.fillStyle = '#18181b';
-      ctx.beginPath();
-      ctx.moveTo(-6, -halfH + 9 + idleBreath);
-      ctx.lineTo(0, -halfH + 18 + idleBreath);
-      ctx.lineTo(7, -halfH + 9 + idleBreath);
-      ctx.closePath();
-      ctx.fill();
-
-      // Veteran Battle Scar
-      ctx.strokeStyle = '#dc2626';
-      ctx.lineWidth = 0.8;
-      ctx.beginPath();
-      ctx.moveTo(4, -halfH + 9 + idleBreath);
-      ctx.lineTo(6, -halfH + 13 + idleBreath);
-      ctx.stroke();
-    } else if (this.hero.id === 'sohrab') {
-      // Groomed Young Hero Mustache
-      ctx.strokeStyle = '#18181b';
-      ctx.lineWidth = 1.8;
-      ctx.beginPath();
-      ctx.moveTo(1, -halfH + 11 + idleBreath);
-      ctx.lineTo(7, -halfH + 10 + idleBreath);
-      ctx.stroke();
-
-      // Strong Jawline Contour
-      ctx.strokeStyle = '#ea580c';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(3, -halfH + 13 + idleBreath, 2, 0, Math.PI / 2);
-      ctx.stroke();
-    } else {
-      // Gordafarid Kohl Liner & Crimson Lips
-      ctx.strokeStyle = '#09090b';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(1, -halfH + 6 + idleBreath);
-      ctx.lineTo(7, -halfH + 5 + idleBreath);
-      ctx.stroke();
-
-      ctx.fillStyle = '#dc2626';
-      ctx.fillRect(3, -halfH + 11 + idleBreath, 3, 1.5);
-    }
-
-    // Gordafarid Flowing Raven Hair
-    if (this.hero.id === 'gordafarid') {
-      ctx.fillStyle = '#09090b';
-      ctx.beginPath();
-      ctx.moveTo(-8, -halfH + 4 + idleBreath);
-      const hairWave1 = Math.sin(time * 6) * 5;
-      const hairWave2 = Math.cos(time * 5) * 6;
-      ctx.quadraticCurveTo(-18 + hairWave1, -halfH + 16 + idleBreath, -22 + hairWave2, -halfH + 28 + idleBreath);
-      ctx.quadraticCurveTo(-14, -halfH + 18 + idleBreath, -4, -halfH + 8 + idleBreath);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    // 7. Helmets & Crowns
-    if (this.hero.id === 'rostam') {
-      // White Div (دیو سپید) Skull Helmet with Curved Horns & Topaz Eyes
-      ctx.fillStyle = '#e2e8f0';
-      ctx.beginPath();
-      ctx.arc(0, -halfH + 5 + idleBreath, 12, Math.PI, 0, false);
-      ctx.lineTo(12, -halfH + 9 + idleBreath);
-      ctx.lineTo(-12, -halfH + 9 + idleBreath);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      // Specular Light Sheen across Skull Helmet in High/Ultra
-      if (isHigh || isUltra) {
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.arc(0, -halfH + 4 + idleBreath, 10, -Math.PI * 0.8, -Math.PI * 0.3);
-        ctx.stroke();
-      }
-
-      // Curved Ivory Horns
-      ctx.fillStyle = '#f8fafc';
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 1;
-      // Left Horn
-      ctx.beginPath();
-      ctx.moveTo(-10, -halfH + 4 + idleBreath);
-      ctx.quadraticCurveTo(-18, -halfH - 8 + idleBreath, -22, -halfH - 18 + idleBreath);
-      ctx.quadraticCurveTo(-13, -halfH - 9 + idleBreath, -5, -halfH + 2 + idleBreath);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // Right Horn
-      ctx.beginPath();
-      ctx.moveTo(10, -halfH + 4 + idleBreath);
-      ctx.quadraticCurveTo(18, -halfH - 8 + idleBreath, 22, -halfH - 18 + idleBreath);
-      ctx.quadraticCurveTo(13, -halfH - 9 + idleBreath, 5, -halfH + 2 + idleBreath);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // Glowing Golden-Topaz Eyes on Div Helmet
-      ctx.fillStyle = '#f59e0b';
-      ctx.fillRect(-6, -halfH + 4 + idleBreath, 3, 2.5);
-      ctx.fillRect(3, -halfH + 4 + idleBreath, 3, 2.5);
-    } else if (this.hero.id === 'sohrab') {
-      // Sasanian Royal Steel Helmet with Turquoise Jewel & Simurgh Plume
-      ctx.fillStyle = '#d4af37';
-      ctx.fillRect(-11, -halfH - 3 + idleBreath, 22, 8);
-      ctx.fillStyle = '#06b6d4';
-      ctx.beginPath();
-      ctx.arc(0, -halfH + 1 + idleBreath, 3, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Simurgh Peacock Plume Feather
-      ctx.strokeStyle = '#10b981';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(0, -halfH - 3 + idleBreath);
-      ctx.quadraticCurveTo(Math.sin(time * 5) * 4, -halfH - 14 + idleBreath, -6 + Math.sin(time * 4) * 5, -halfH - 22 + idleBreath);
-      ctx.stroke();
-    } else {
-      // Gordafarid Royal Tiara
-      ctx.fillStyle = '#d4af37';
-      ctx.fillRect(-10, -halfH - 2, 20, 6);
-      ctx.fillStyle = '#ef4444';
-      ctx.beginPath();
-      ctx.arc(0, -halfH + 1, 2.5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // 8. Weapons & Multi-Layered Glowing Attack Trails
-    ctx.save();
-    if (p.isAttacking) {
-      const swingAngle = (1 - p.attackTimer / 0.3) * Math.PI - 0.5;
-      ctx.rotate(swingAngle);
-      ctx.translate(14, -10);
-
-      const isFinisher = this.comboStep === 2;
-
-      // Outer Radiant Slash Halo
-      ctx.strokeStyle = isFinisher ? 'rgba(245, 158, 11, 0.4)' : 'rgba(254, 240, 138, 0.35)';
-      ctx.lineWidth = isFinisher ? 15 : 10;
-      ctx.beginPath();
-      ctx.arc(0, 0, 39, -0.7, 1.3);
-      ctx.stroke();
-
-      // Core Blade Trail Sweep
-      ctx.strokeStyle = isFinisher ? '#f59e0b' : '#fef08a';
-      ctx.lineWidth = isFinisher ? 6 : 4;
-      ctx.beginPath();
-      ctx.arc(0, 0, 39, -0.6, 1.2);
-      ctx.stroke();
-
-      // Inner White-Hot Sharp Razor Edge
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(0, 0, 39, -0.4, 1.0);
-      ctx.stroke();
-    } else {
-      ctx.translate(10, 4);
-    }
-
-    // Hero-Specific Weapon Models
-    if (this.hero.id === 'rostam') {
-      // Gav-sar (گرز گاوسار - Bull-Headed Mace)
-      // Steel Shaft
-      ctx.fillStyle = '#64748b';
-      ctx.fillRect(0, -26, 5, 36);
-      ctx.fillStyle = '#d4af37';
-      ctx.fillRect(-1, -12, 7, 3);
-      ctx.fillRect(-1, 0, 7, 3);
-
-      // Sculpted Golden Ox Head
-      ctx.fillStyle = '#d4af37';
-      ctx.beginPath();
-      ctx.arc(2.5, -28, 9, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#fef08a';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      // Ox Horns on Mace
-      ctx.fillStyle = '#f8fafc';
-      ctx.beginPath();
-      ctx.moveTo(-5, -28);
-      ctx.quadraticCurveTo(-14, -34, -12, -42);
-      ctx.lineTo(-4, -32);
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(10, -28);
-      ctx.quadraticCurveTo(19, -34, 17, -42);
-      ctx.lineTo(9, -32);
-      ctx.fill();
-
-      // Electrical Sparks along Gav-sar in High/Ultra
-      if (isHigh || isUltra) {
-        ctx.strokeStyle = '#67e8f9';
-        ctx.lineWidth = 1.5;
-        const sparkY = -18 + Math.sin(time * 20) * 12;
-        ctx.beginPath();
-        ctx.moveTo(1, sparkY);
-        ctx.lineTo(4, sparkY - 3);
-        ctx.lineTo(0, sparkY - 6);
-        ctx.stroke();
-      }
-    } else if (this.hero.id === 'sohrab') {
-      // Curved Damascene Steel Scimitar (شمشیر زرداران)
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(0, 0, 4, 10);
-      ctx.fillStyle = '#d4af37';
-      ctx.fillRect(-4, -1, 12, 3);
-
-      // Damascus Curved Blade
-      ctx.fillStyle = '#f1f5f9';
-      ctx.beginPath();
-      ctx.moveTo(2, -1);
-      ctx.quadraticCurveTo(14, -20, 24, -34);
-      ctx.lineTo(18, -36);
-      ctx.quadraticCurveTo(10, -20, 0, -1);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    } else {
-      // Gordafarid Recurve Bow (کمان پولادین)
-      ctx.strokeStyle = '#d4af37';
-      ctx.lineWidth = 3.5;
-      ctx.beginPath();
-      ctx.arc(6, -10, 20, -Math.PI / 2, Math.PI / 2);
-      ctx.stroke();
-
-      // Bowstring
-      ctx.strokeStyle = '#fef08a';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(6, -30);
-      ctx.lineTo(6, 10);
-      ctx.stroke();
-    }
-    ctx.restore();
+    QahvehKhanehRenderer.renderHero({
+      ctx,
+      heroId: this.hero.id,
+      facing: p.facing,
+      animFrame: p.animFrame,
+      vx: p.vx,
+      vy: p.vy,
+      isGrounded: p.isGrounded,
+      isAttacking: p.isAttacking,
+      attackType: this.comboStep === 2 ? 'heavy' : 'light',
+      attackTimer: p.attackTimer,
+      isHit: p.isInvulnerable && p.invulnTimer > 0.6,
+      isParrying: p.isParrying,
+      rageRatio: Math.min(1.0, p.rage / p.maxRage),
+      graphicsTier: this.graphicsTier,
+      time: performance.now() * 0.001,
+      hasSimurghBoots: this.hasSimurghBoots,
+    });
 
     ctx.restore();
   }
@@ -2263,30 +1649,148 @@ export class GameEngine {
       }
 
       if (e.isBoss) {
-        ctx.fillStyle = e.isHit ? '#ef4444' : this.stage.id === 2 ? '#450a0a' : this.stage.id === 3 ? '#f1f5f9' : '#0f172a';
-        ctx.fillRect(-e.width / 2, -e.height / 2 + 20, e.width, e.height - 20);
+        if (this.stage.id === 4) {
+          // Stage 4 Boss: Dej-e Sepid (Sohrab vs Gordafarid or Rostam)
+          const bossHeroId = this.hero.id === 'sohrab' ? 'gordafarid' : 'sohrab';
+          QahvehKhanehRenderer.renderHero({
+            ctx,
+            heroId: bossHeroId,
+            facing: 1,
+            animFrame: performance.now() * 0.008,
+            vx: e.vx,
+            vy: 0,
+            isGrounded: true,
+            isAttacking: e.isAttacking,
+            attackType: 'heavy',
+            isHit: e.isHit,
+            graphicsTier: this.graphicsTier,
+            time: performance.now() * 0.001,
+          });
+        } else if (this.stage.id === 3) {
+          // Stage 3: Div Sepid (Huge chalk-white demon, curved ram horns, red eyes, spiked club)
+          ctx.fillStyle = e.isHit ? '#ef4444' : '#f8fafc';
+          ctx.beginPath();
+          ctx.roundRect(-e.width / 2, -e.height / 2 + 20, e.width, e.height - 20, [12, 12, 4, 4]);
+          ctx.fill();
 
-        ctx.fillStyle = '#0f172a';
-        ctx.beginPath();
-        ctx.arc(0, -e.height / 2 + 15, 20, 0, Math.PI * 2);
-        ctx.fill();
+          // Demon Head
+          ctx.fillStyle = '#e2e8f0';
+          ctx.beginPath();
+          ctx.arc(0, -e.height / 2 + 14, 22, 0, Math.PI * 2);
+          ctx.fill();
 
-        ctx.fillStyle = '#ef4444';
-        ctx.fillRect(-10, -e.height / 2 + 10, 6, 6);
-        ctx.fillRect(4, -e.height / 2 + 10, 6, 6);
+          // Glowing Red Eyes
+          ctx.fillStyle = '#ef4444';
+          ctx.shadowColor = '#ef4444';
+          ctx.shadowBlur = 8;
+          ctx.fillRect(-10, -e.height / 2 + 10, 7, 7);
+          ctx.fillRect(3, -e.height / 2 + 10, 7, 7);
+          ctx.shadowBlur = 0;
 
-        ctx.fillStyle = '#d4af37';
-        ctx.beginPath();
-        ctx.moveTo(-16, -e.height / 2 + 6);
-        ctx.lineTo(-34, -e.height / 2 - 24);
-        ctx.lineTo(-8, -e.height / 2 - 4);
-        ctx.fill();
+          // Massive Ram Horns
+          ctx.fillStyle = '#d4af37';
+          ctx.beginPath();
+          ctx.moveTo(-14, -e.height / 2 + 6);
+          ctx.quadraticCurveTo(-38, -e.height / 2 - 20, -30, -e.height / 2 - 32);
+          ctx.lineTo(-10, -e.height / 2 - 6);
+          ctx.fill();
 
-        ctx.beginPath();
-        ctx.moveTo(16, -e.height / 2 + 6);
-        ctx.lineTo(34, -e.height / 2 - 24);
-        ctx.lineTo(8, -e.height / 2 - 4);
-        ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(14, -e.height / 2 + 6);
+          ctx.quadraticCurveTo(38, -e.height / 2 - 20, 30, -e.height / 2 - 32);
+          ctx.lineTo(10, -e.height / 2 - 6);
+          ctx.fill();
+
+          // Spiked Club in hand
+          ctx.fillStyle = '#475569';
+          ctx.fillRect(20, -e.height / 2 + 10, 12, 50);
+          ctx.fillStyle = '#94a3b8';
+          ctx.fillRect(16, -e.height / 2 + 12, 20, 16);
+        } else if (this.stage.id === 2) {
+          // Stage 2: Zahhak (Dark royal robes, serpents emerging from shoulders)
+          ctx.fillStyle = e.isHit ? '#ef4444' : '#450a0a';
+          ctx.beginPath();
+          ctx.roundRect(-e.width / 2, -e.height / 2 + 20, e.width, e.height - 20, [8, 8, 4, 4]);
+          ctx.fill();
+
+          // Head & Crown
+          ctx.fillStyle = '#78350f';
+          ctx.beginPath();
+          ctx.arc(0, -e.height / 2 + 12, 16, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#eab308';
+          ctx.beginPath();
+          ctx.moveTo(-12, -e.height / 2 + 2);
+          ctx.lineTo(-12, -e.height / 2 - 10);
+          ctx.lineTo(-4, -e.height / 2 - 4);
+          ctx.lineTo(0, -e.height / 2 - 12);
+          ctx.lineTo(4, -e.height / 2 - 4);
+          ctx.lineTo(12, -e.height / 2 - 10);
+          ctx.lineTo(12, -e.height / 2 + 2);
+          ctx.fill();
+
+          // Left Shoulder Serpent
+          ctx.strokeStyle = '#022c22';
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.moveTo(-16, -e.height / 2 + 24);
+          ctx.quadraticCurveTo(-36, -e.height / 2 + 6, -30, -e.height / 2 - 16);
+          ctx.stroke();
+          // Serpent head
+          ctx.fillStyle = '#15803d';
+          ctx.beginPath();
+          ctx.arc(-30, -e.height / 2 - 16, 6, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Right Shoulder Serpent
+          ctx.beginPath();
+          ctx.moveTo(16, -e.height / 2 + 24);
+          ctx.quadraticCurveTo(36, -e.height / 2 + 6, 30, -e.height / 2 - 16);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(30, -e.height / 2 - 16, 6, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (this.stage.id === 6) {
+          // Stage 6: Esfandiar (Invincible Golden Armor, Farreh Halo)
+          ctx.shadowColor = '#facc15';
+          ctx.shadowBlur = 12;
+          ctx.fillStyle = e.isHit ? '#ef4444' : '#ca8a04';
+          ctx.beginPath();
+          ctx.roundRect(-e.width / 2, -e.height / 2 + 20, e.width, e.height - 20, [6, 6, 4, 4]);
+          ctx.fill();
+
+          // Golden Head & Halo
+          ctx.fillStyle = '#fde047';
+          ctx.beginPath();
+          ctx.arc(0, -e.height / 2 + 10, 16, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          // Divine Lance
+          ctx.strokeStyle = '#fef08a';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(18, e.height / 2);
+          ctx.lineTo(24, -e.height / 2 - 28);
+          ctx.stroke();
+        } else {
+          // Stage 1, 5, 7 or Generic Boss
+          ctx.fillStyle = e.isHit ? '#ef4444' : '#0f172a';
+          ctx.fillRect(-e.width / 2, -e.height / 2 + 20, e.width, e.height - 20);
+
+          ctx.fillStyle = '#1e293b';
+          ctx.beginPath();
+          ctx.arc(0, -e.height / 2 + 15, 18, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#ef4444';
+          ctx.fillRect(-8, -e.height / 2 + 10, 5, 5);
+          ctx.fillRect(3, -e.height / 2 + 10, 5, 5);
+
+          ctx.fillStyle = '#d4af37';
+          ctx.fillRect(-12, -e.height / 2 - 4, 24, 6);
+        }
       } else if (e.type === 'flying_akvan') {
         ctx.fillStyle = e.isHit ? '#ef4444' : '#7c3aed';
         ctx.beginPath();

@@ -1,5 +1,7 @@
 // 1v1 Pahlavani Duel Engine with Blade Clash Mechanic & Authentic Combat AI
 import { HeroDef, HeroId, GraphicsTier } from '../types/game';
+import { PersianMiniatureEnvironment } from './PersianMiniatureEnvironment';
+import { QahvehKhanehRenderer } from './QahvehKhanehRenderer';
 import { naqqalAudio } from '../utils/naqqalAudio';
 import { sound } from '../utils/audio';
 
@@ -68,6 +70,9 @@ export class DuelEngine {
   public onClashUpdate?: (state: ClashState) => void;
   public onDuelEnd?: (winner: 'player' | 'opponent') => void;
 
+  private miniatureEnv: PersianMiniatureEnvironment = new PersianMiniatureEnvironment();
+  public stageId: number = 1;
+
   private arenaWidth: number = 900;
   private arenaGroundY: number = 420;
   private cameraShake: number = 0;
@@ -87,6 +92,17 @@ export class DuelEngine {
     this.graphicsTier = tier;
     this.arenaWidth = Math.max(800, this.canvas.width);
     this.arenaGroundY = this.canvas.height - 110;
+
+    // Infer appropriate Shahnameh stage background for the duel
+    if (p2.heroId === 'div_sepid') {
+      this.stageId = 3; // Dark Caves of Mazandaran
+    } else if (p2.heroId === 'sohrab' || p1.heroId === 'gordafarid' || p2.heroId === 'gordafarid') {
+      this.stageId = 4; // Dej-e Sepid Fortress
+    } else if (p2.heroId === 'esfandiar') {
+      this.stageId = 6; // Zabolistan
+    } else {
+      this.stageId = 1; // Zabol Plains
+    }
 
     this.fighter1 = {
       id: p1.heroId,
@@ -582,48 +598,21 @@ export class DuelEngine {
       ctx.translate((Math.random() - 0.5) * this.cameraShake, (Math.random() - 0.5) * this.cameraShake);
     }
 
-    // 1. Goud-e Zoorkhaneh / Historic Ring Background
-    const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-    bgGrad.addColorStop(0, '#090d18');
-    bgGrad.addColorStop(0.5, '#131b2e');
-    bgGrad.addColorStop(1, '#080c16');
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, w, h);
+    // 1. Dynamic Persian Miniature Environment (shifting from Zabol to Mazandaran caves)
+    const camX = (this.fighter1.x + this.fighter2.x) / 2 - w / 2;
+    this.miniatureEnv.render(ctx, w, h, camX, this.stageId, this.graphicsTier, time);
 
-    // Stone Bas-Relief Wall in Background (تندیس‌ها و سنگ‌نبشته‌های باستانی)
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(40, this.arenaGroundY - 140, w - 80, 140);
-    ctx.strokeStyle = '#334155';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(40, this.arenaGroundY - 140, w - 80, 140);
-
-    // Persian Archways along back wall
-    ctx.strokeStyle = '#d4af37';
-    ctx.lineWidth = 1.5;
-    for (let archX = 80; archX < w - 80; archX += 130) {
-      ctx.beginPath();
-      ctx.arc(archX + 45, this.arenaGroundY - 80, 40, Math.PI, 0);
-      ctx.lineTo(archX + 85, this.arenaGroundY);
-      ctx.lineTo(archX + 5, this.arenaGroundY);
-      ctx.stroke();
-    }
-
-    // Torches on Arena Pillars
-    [100, w - 100].forEach(tx => {
-      ctx.fillStyle = '#b45309';
-      ctx.fillRect(tx - 3, this.arenaGroundY - 110, 6, 40);
-      // Flame
-      ctx.fillStyle = '#f97316';
-      ctx.beginPath();
-      ctx.arc(tx, this.arenaGroundY - 114 + Math.sin(time * 10 + tx) * 2, 8, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    // 2. Sand Ground (گود شنی مبارزه)
+    // 2. Arena Ground (گود رزم پهلوانی)
     const groundGrad = ctx.createLinearGradient(0, this.arenaGroundY, 0, h);
-    groundGrad.addColorStop(0, '#78350f');
-    groundGrad.addColorStop(0.2, '#92400e');
-    groundGrad.addColorStop(1, '#451a03');
+    if (this.stageId === 3) {
+      groundGrad.addColorStop(0, '#0f172a');
+      groundGrad.addColorStop(0.3, '#022c22');
+      groundGrad.addColorStop(1, '#020617');
+    } else {
+      groundGrad.addColorStop(0, '#78350f');
+      groundGrad.addColorStop(0.2, '#92400e');
+      groundGrad.addColorStop(1, '#451a03');
+    }
     ctx.fillStyle = groundGrad;
     ctx.fillRect(0, this.arenaGroundY, w, h - this.arenaGroundY);
 
@@ -671,149 +660,134 @@ export class DuelEngine {
 
   private renderFighter(f: DuelFighter) {
     const ctx = this.ctx;
-    const isUltra = this.graphicsTier === 'ultra';
     const time = performance.now() * 0.001;
 
+    // For hero characters, render with authentic Persian Qahveh-Khaneh traditional epic style
+    if (f.id !== 'div_sepid') {
+      ctx.save();
+      // Center origin at pahlavan torso (ground is at f.y, renderer baseline is at +26)
+      ctx.translate(f.x, f.y - 26);
+
+      QahvehKhanehRenderer.renderHero({
+        ctx,
+        heroId: f.id,
+        facing: f.facing,
+        animFrame: f.animFrame,
+        vx: f.vx,
+        vy: f.vy,
+        isGrounded: f.isGrounded,
+        isAttacking: f.isAttacking,
+        attackType: f.attackType,
+        attackTimer: f.attackTimer,
+        isHit: f.isHit,
+        isParrying: f.isParrying,
+        rageRatio: Math.min(1.0, f.rage / 100),
+        graphicsTier: this.graphicsTier,
+        time,
+      });
+
+      ctx.restore();
+      return;
+    }
+
+    // White Div (دیو سپید مازندران) with formidable Qahveh-Khaneh demon style
     ctx.save();
     ctx.translate(f.x, f.y);
     if (f.facing === -1) {
       ctx.scale(-1, 1);
     }
 
-    // Shadow
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    // Demonic Shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.beginPath();
-    ctx.ellipse(0, 2, 22, 6, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 2, 28, 8, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Stagger / Hit Flash
+    // Hit reaction
     if (f.isHit) {
       ctx.fillStyle = '#ef4444';
+      ctx.shadowColor = '#ef4444';
+      ctx.shadowBlur = 14;
     }
 
-    // Parry Shield Glow
-    if (f.isParrying) {
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(12, -35, 30, -Math.PI / 2, Math.PI / 2);
-      ctx.stroke();
-    }
+    // Heavy Demonic Breathing
+    const breath = Math.sin(f.animFrame * 0.6) * 2;
 
-    // Breathing Motion
-    const breath = Math.sin(f.animFrame * 0.6) * 1.5;
-
-    // Cape
-    ctx.fillStyle = f.heroDef?.capeColor || (f.id === 'sohrab' ? '#0891b2' : '#b91c1c');
+    // Dark Tattered Cape
+    ctx.fillStyle = '#1e293b';
     ctx.beginPath();
-    ctx.moveTo(-8, -48);
-    ctx.quadraticCurveTo(-26, -30, -28 + Math.sin(time * 5) * 4, -8);
-    ctx.lineTo(-12, -4);
+    ctx.moveTo(-12, -54);
+    ctx.quadraticCurveTo(-34, -30, -36 + Math.sin(time * 5) * 5, -6);
+    ctx.lineTo(-14, -4);
     ctx.closePath();
     ctx.fill();
 
-    // Boots & Legs
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(-12, -20, 10, 20);
-    ctx.fillRect(2, -20, 10, 20);
-    ctx.fillStyle = '#b45309';
-    ctx.fillRect(-13, -10, 12, 10);
-    ctx.fillRect(1, -10, 12, 10);
-
-    // Torso & Armor (Babr-e Bayan / Royal Steel)
-    if (f.id === 'rostam') {
-      ctx.fillStyle = '#d97706';
-      ctx.fillRect(-14, -50 + breath, 28, 32);
-      // Tiger stripes
-      ctx.fillStyle = '#18181b';
-      for (let s = 0; s < 3; s++) {
-        ctx.fillRect(-12, -45 + breath + s * 8, 8, 3);
-        ctx.fillRect(4, -45 + breath + s * 8, 8, 3);
-      }
-    } else {
-      ctx.fillStyle = f.color;
-      ctx.fillRect(-14, -50 + breath, 28, 32);
-    }
-
-    // Pahlavani Golden Belt & Lion Emblem
-    ctx.fillStyle = '#78350f';
-    ctx.fillRect(-14, -20 + breath, 28, 6);
-    ctx.fillStyle = '#fef08a';
-    ctx.beginPath();
-    ctx.arc(0, -17 + breath, 4.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Head, Face & Features
-    ctx.fillStyle = '#fed7aa';
-    ctx.beginPath();
-    ctx.arc(0, -58 + breath, 12, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Eyes with sharp focus
+    // Muscular Slate Legs & Demon Claws
     ctx.fillStyle = '#0f172a';
-    ctx.fillRect(3, -60 + breath, 2.5, 2.5);
+    ctx.fillRect(-16, -22, 14, 22);
+    ctx.fillRect(4, -22, 14, 22);
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(-18, -8, 16, 8);
+    ctx.fillRect(2, -8, 16, 8);
 
-    // Rostam's Beard & Horned Div Helmet
-    if (f.id === 'rostam') {
-      // White Div Skull Helmet
-      ctx.fillStyle = '#e2e8f0';
-      ctx.beginPath();
-      ctx.arc(0, -62 + breath, 13, Math.PI, 0);
-      ctx.fill();
-      ctx.strokeStyle = '#94a3b8';
-      ctx.stroke();
+    // Giant White Demon Torso with Demon Veins
+    ctx.fillStyle = f.isHit ? '#ef4444' : '#f8fafc';
+    ctx.fillRect(-22, -64 + breath, 44, 46);
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(-20, -42 + breath, 40, 8); // Iron Spiked Girdle
 
-      // Curved Horns
-      ctx.fillStyle = '#f8fafc';
-      ctx.beginPath();
-      ctx.moveTo(-10, -62 + breath);
-      ctx.quadraticCurveTo(-20, -74, -24, -84);
-      ctx.lineTo(-6, -65 + breath);
-      ctx.fill();
+    // Red Demonic Chest Runes
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.arc(-8, -50 + breath, 3, 0, Math.PI * 2);
+    ctx.arc(8, -50 + breath, 3, 0, Math.PI * 2);
+    ctx.fill();
 
-      ctx.beginPath();
-      ctx.moveTo(10, -62 + breath);
-      ctx.quadraticCurveTo(20, -74, 24, -84);
-      ctx.lineTo(6, -65 + breath);
-      ctx.fill();
+    // Demon Head with Ashen Skin
+    ctx.fillStyle = '#e2e8f0';
+    ctx.beginPath();
+    ctx.arc(0, -74 + breath, 18, 0, Math.PI * 2);
+    ctx.fill();
 
-      // Pahlavani Black Beard
-      ctx.fillStyle = '#18181b';
-      ctx.beginPath();
-      ctx.moveTo(-8, -54 + breath);
-      ctx.lineTo(0, -44 + breath);
-      ctx.lineTo(8, -54 + breath);
-      ctx.closePath();
-      ctx.fill();
-    } else {
-      // Crown or Helmet
-      ctx.fillStyle = '#d4af37';
-      ctx.fillRect(-11, -70 + breath, 22, 9);
-    }
+    // Glowing Crimson Demon Eyes
+    ctx.fillStyle = '#ef4444';
+    ctx.shadowColor = '#ef4444';
+    ctx.shadowBlur = 10;
+    ctx.fillRect(3, -77 + breath, 6, 4);
+    ctx.fillRect(-9, -77 + breath, 6, 4);
+    ctx.shadowBlur = 0;
 
-    // Weapons & Attack Arc
+    // Giant Curved Ram Horns (شاخ‌های غول‌پیکر دیو سپید)
+    ctx.fillStyle = '#334155';
+    ctx.beginPath();
+    ctx.moveTo(-14, -80 + breath);
+    ctx.quadraticCurveTo(-34, -98, -42, -114);
+    ctx.lineTo(-10, -84 + breath);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(14, -80 + breath);
+    ctx.quadraticCurveTo(34, -98, 42, -114);
+    ctx.lineTo(10, -84 + breath);
+    ctx.fill();
+
+    // Demonic Spiked Granite Club
     ctx.save();
     if (f.isAttacking) {
       const swing = (1 - f.attackTimer / 0.3) * Math.PI - 0.4;
       ctx.rotate(swing);
-      ctx.translate(16, -20);
-
-      // Weapon Trail
-      ctx.strokeStyle = '#fef08a';
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.arc(0, 0, 42, -0.6, 1.2);
-      ctx.stroke();
+      ctx.translate(22, -26);
     } else {
-      ctx.translate(12, -18);
+      ctx.translate(18, -22);
     }
-
-    // Weapon representation
-    ctx.fillStyle = '#94a3b8';
-    ctx.fillRect(0, -32, 5, 36);
-    ctx.fillStyle = '#d4af37';
-    ctx.fillRect(-3, -2, 11, 4);
-
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(-3, -42, 9, 48);
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(-8, -48, 19, 18);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillRect(-11, -44, 4, 4);
+    ctx.fillRect(11, -44, 4, 4);
+    ctx.fillRect(-1, -52, 5, 5);
     ctx.restore();
 
     ctx.restore();
