@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { HeroId, PlayerProgress, Language, GraphicsTier } from '../types/game';
 import { HEROES, STAGES } from '../constants/gameData';
 import { TRANSLATIONS } from '../constants/translations';
+import { QahvehKhanehRenderer } from '../game/QahvehKhanehRenderer';
 import { LanguageSelector } from './LanguageSelector';
 import { GraphicsSelector } from './GraphicsSelector';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -76,8 +77,95 @@ export const TitleScreen: React.FC<Props> = ({
 }) => {
   const t = TRANSLATIONS[lang];
   const [isMuted, setIsMuted] = React.useState(sound.getIsMuted());
+  const portraitCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const strikeTimerRef = useRef<number>(0);
 
   const currentHero = HEROES.find(h => h.id === selectedHeroId) || HEROES[0];
+
+  // Trigger a heroic weapon flourish when switching heroes
+  useEffect(() => {
+    strikeTimerRef.current = 0.34;
+  }, [selectedHeroId]);
+
+  // Live Qahveh-Khaneh Pahlavan Showcase Canvas Loop
+  useEffect(() => {
+    const canvas = portraitCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animId = 0;
+    let last = performance.now();
+
+    const renderPortrait = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      const time = now * 0.001;
+
+      if (strikeTimerRef.current > 0) {
+        strikeTimerRef.current = Math.max(0, strikeTimerRef.current - dt);
+      }
+
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      // Dark Illuminated Qahveh-Khaneh Arch Backdrop
+      const bgGrad = ctx.createRadialGradient(w * 0.5, h * 0.48, 10, w * 0.5, h * 0.5, w * 0.65);
+      if (selectedHeroId === 'rostam') {
+        bgGrad.addColorStop(0, '#451a03');
+        bgGrad.addColorStop(0.6, '#1c0a04');
+        bgGrad.addColorStop(1, '#070a14');
+      } else if (selectedHeroId === 'sohrab') {
+        bgGrad.addColorStop(0, '#082f49');
+        bgGrad.addColorStop(0.6, '#061526');
+        bgGrad.addColorStop(1, '#070a14');
+      } else {
+        bgGrad.addColorStop(0, '#064e3b');
+        bgGrad.addColorStop(0.6, '#031d17');
+        bgGrad.addColorStop(1, '#070a14');
+      }
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Ornate Golden Tazhib Arch Frame
+      ctx.strokeStyle = 'rgba(217, 119, 6, 0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(5, 5, w - 10, h - 10);
+
+      // Stone Pedestal
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(20, h - 22, w - 40, 10);
+      ctx.strokeStyle = '#f59e0b';
+      ctx.strokeRect(20, h - 22, w - 40, 10);
+
+      // Render Hero in Full Mature Qahveh-Khaneh Detail
+      ctx.save();
+      ctx.translate(w * 0.5, h - 64);
+      QahvehKhanehRenderer.renderHero({
+        ctx,
+        heroId: selectedHeroId,
+        facing: 1,
+        animFrame: time * 4,
+        vx: 0,
+        vy: 0,
+        isGrounded: true,
+        isAttacking: strikeTimerRef.current > 0,
+        attackType: 'heavy',
+        attackTimer: strikeTimerRef.current,
+        rageRatio: 0.75,
+        graphicsTier: 'ultra',
+        time,
+        scale: 1.95,
+      });
+      ctx.restore();
+
+      animId = requestAnimationFrame(renderPortrait);
+    };
+
+    animId = requestAnimationFrame(renderPortrait);
+    return () => cancelAnimationFrame(animId);
+  }, [selectedHeroId]);
 
   const handleToggleSound = () => {
     const muted = sound.toggleMute();
@@ -106,8 +194,8 @@ export const TitleScreen: React.FC<Props> = ({
               <h1 className="text-lg md:text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400">
                 {t.app_title}
               </h1>
-              <span className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded">
-                v2.5 حماسی
+              <span className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 rounded">
+                v1.0.5 Release
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-medium">
@@ -199,10 +287,10 @@ export const TitleScreen: React.FC<Props> = ({
             />
 
             <div>
-              {/* Hero Header */}
-              <div className="flex items-start justify-between pb-3 border-b border-slate-800">
-                <div>
-                  <div className="flex items-center gap-2">
+              {/* Hero Header + Live Qahveh-Khaneh Canvas Portrait */}
+              <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 pb-3 border-b border-slate-800">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="text-xl md:text-2xl font-black text-amber-300">
                       {t[currentHero.nameKey]}
                     </h2>
@@ -210,27 +298,38 @@ export const TitleScreen: React.FC<Props> = ({
                       {t[currentHero.titleKey]}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-amber-200/80 font-medium mt-1">
                     {currentHero.id === 'rostam'
-                      ? 'پهلوان نامدار سیستان، دارنده ببر بیان و رخش تیزتک'
+                      ? 'پهلوان نامدار سیستان · دارنده زره ببر بیان، کلاه‌خود دیو سپید و گرز گاوسار'
                       : currentHero.id === 'sohrab'
-                      ? 'جوان دلاور توران‌زمین، جویای پدر با دلی آکنده از مهر و افتخار'
-                      : 'شیرزن دلاور ایرانی، تیرانداز نامدار و پاسدار دژ سپید'}
+                      ? 'سپهدار جوان توران · دارنده جوشن فیروزه‌ای، بازوبند مهره رستم و شمشیر دمشقی'
+                      : 'شیرزن سلحشور ایران · دارنده جوشن یشمی زرنگار، سنان دوشاخ و کمان کیانی'}
+                  </p>
+                  <p className="text-xs text-slate-300 leading-relaxed mt-2.5 italic">
+                    «{t[currentHero.descKey]}»
                   </p>
                 </div>
 
+                {/* Interactive Qahveh-Khaneh Pahlavan Canvas Showcase */}
                 <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg border border-white/10 shrink-0"
-                  style={{ backgroundColor: `${currentHero.color}25` }}
+                  onClick={() => {
+                    strikeTimerRef.current = 0.34;
+                    sound.playSlash();
+                  }}
+                  title="کلیک برای نمایش ضربه سلاح پهلوان"
+                  className="relative w-36 h-40 rounded-xl overflow-hidden border-2 border-amber-500/50 shadow-2xl shrink-0 cursor-pointer group bg-[#070a14]"
                 >
-                  {currentHero.id === 'rostam' ? '🦁' : currentHero.id === 'sohrab' ? '🦅' : '🏹'}
+                  <canvas
+                    ref={portraitCanvasRef}
+                    width={160}
+                    height={180}
+                    className="w-full h-full object-contain"
+                  />
+                  <span className="absolute bottom-1 inset-x-0 text-center text-[9px] text-amber-300/80 font-mono bg-slate-950/70 py-0.5">
+                    نگاره قهوه‌خانه‌ای (ضربه با کلیک)
+                  </span>
                 </div>
               </div>
-
-              {/* Hero Lore Description */}
-              <p className="text-xs text-slate-300 leading-relaxed mt-3 italic">
-                «{t[currentHero.descKey]}»
-              </p>
 
               {/* Combat Gear & Signature Skill */}
               <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-slate-800">
@@ -457,11 +556,11 @@ export const TitleScreen: React.FC<Props> = ({
 
             <button
               onClick={onOpenReleases}
-              className="py-2.5 px-3 bg-slate-900/90 hover:bg-slate-800 border border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-300 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm col-span-2 sm:col-span-1"
-              title="خروجی‌های تمام دستگاه‌ها و انتشارهای گیت‌هاب"
+              className="py-2.5 px-3 bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-400/60 rounded-xl text-xs font-bold text-emerald-300 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm col-span-2 sm:col-span-1"
+              title="دانلود مستقیم خروجی‌های تمام دستگاه‌ها و انتشارهای گیت‌هاب (v1.0.0 تا v1.0.5)"
             >
               <Github className="w-4 h-4 text-emerald-400" />
-              <span>انتشارهای گیت‌هاب</span>
+              <span>ریلیزهای گیت‌هاب (v1.0.5)</span>
             </button>
           </div>
         </section>

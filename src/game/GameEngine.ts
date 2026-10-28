@@ -1,7 +1,7 @@
 import { HeroDef, StageDef, GraphicsTier } from '../types/game';
-import { SHAHNAMEH_LORE } from '../constants/shahnamehLore';
 import { PersianMiniatureEnvironment } from './PersianMiniatureEnvironment';
 import { QahvehKhanehRenderer } from './QahvehKhanehRenderer';
+import { StoryLogicManager } from './StoryLogicManager';
 import { sound } from '../utils/audio';
 
 export interface InputState {
@@ -457,42 +457,22 @@ export class GameEngine {
   private update(dt: number) {
     this.player.animFrame += dt * 10;
 
-    // Check narrative milestones
-    const lore = SHAHNAMEH_LORE['fa']?.[this.stage.id];
-    if (lore) {
-      if (!this.narrativePassed.start && this.player.x > 300) {
-        this.narrativePassed.start = true;
-        let msg = lore.battleStartSubtitle;
-        if (this.stage.id === 4) {
-          if (this.hero.id === 'gordafarid') {
-            msg = 'گردآفرید شیرزن: «تا جان در تن دارم، نخواهم گذاشت پرچم توران بر فراز دژ سپید افراشته شود!»';
-          } else if (this.hero.id === 'sohrab') {
-            msg = 'سهراب یل: «ای مدافعان دژ سپید! هماوردی نامدار به میدان فرستید که تیغ من تشنه رزم است!»';
-          }
-        }
-        this.onNarrativeMilestone(msg);
-      } else if (!this.narrativePassed.mid && this.player.x > 1500) {
-        this.narrativePassed.mid = true;
-        let msg = lore.battleMidSubtitle;
-        if (this.stage.id === 4) {
-          if (this.hero.id === 'gordafarid') {
-            msg = 'سهراب از فراز اسب: «کدام دلاور است که این‌گونه چابک با کمان و کمند راه بر سپاه من بسته؟ نقاب از رخ برگیر!»';
-          } else if (this.hero.id === 'sohrab') {
-            msg = 'سهراب با خویشتن: «آیا در این دیار نشانی از پدرم رستم تهمتن خواهم یافت، یا تقدیر رازی دگر در آستین دارد؟»';
-          }
-        }
-        this.onNarrativeMilestone(msg);
-      } else if (!this.narrativePassed.boss && this.player.x > 2600) {
-        this.narrativePassed.boss = true;
-        let msg = lore.bossConfrontationSubtitle;
-        if (this.stage.id === 4) {
-          if (this.hero.id === 'gordafarid') {
-            msg = 'سهراب یل به پیش می‌تازد: «ای شیرزن دژ سپید! تیغ دمشقی من در نیام نمی‌ماند؛ به گود نبرد درآ!»';
-          } else if (this.hero.id === 'sohrab') {
-            msg = 'گردآفرید شیرزن کمان برمی‌کشد: «سهراب! بدان که زنان ایران‌زمین نیز در گاهِ رزم، شیرافکن و رویین‌تنند!»';
-          }
-        }
-        this.onNarrativeMilestone(msg);
+    // Check narrative milestones via StoryLogicManager
+    const storyProfile = StoryLogicManager.getStageProfile(this.stage, this.hero.id, 'fa');
+    if (!this.narrativePassed.start && this.player.x > 300) {
+      this.narrativePassed.start = true;
+      if (storyProfile.waypoints.start) {
+        this.onNarrativeMilestone(storyProfile.waypoints.start);
+      }
+    } else if (!this.narrativePassed.mid && this.player.x > 1500) {
+      this.narrativePassed.mid = true;
+      if (storyProfile.waypoints.mid) {
+        this.onNarrativeMilestone(storyProfile.waypoints.mid);
+      }
+    } else if (!this.narrativePassed.boss && this.player.x > 2600) {
+      this.narrativePassed.boss = true;
+      if (storyProfile.waypoints.boss) {
+        this.onNarrativeMilestone(storyProfile.waypoints.boss);
       }
     }
 
@@ -1635,219 +1615,85 @@ export class GameEngine {
   }
 
   private renderEnemies(ctx: CanvasRenderingContext2D) {
+    const now = performance.now() * 0.001;
     this.enemies.forEach(e => {
-      if (e.x + e.width < this.cameraX - 100 || e.x > this.cameraX + this.canvas.width + 100) return;
+      if (e.x + e.width < this.cameraX - 120 || e.x > this.cameraX + this.canvas.width + 120) return;
 
       ctx.save();
-      ctx.translate(e.x + e.width / 2, e.y + e.height / 2);
+      ctx.translate(e.x + e.width / 2, e.y + e.height - 26);
       if (e.facing === -1) {
         ctx.scale(-1, 1);
       }
 
-      if (e.isHit) {
-        ctx.fillStyle = '#f87171';
-      }
-
-      if (e.isBoss) {
-        if (this.stage.id === 4) {
-          // Stage 4 Boss: Dej-e Sepid (Sohrab vs Gordafarid or Rostam)
-          const bossHeroId = this.hero.id === 'sohrab' ? 'gordafarid' : 'sohrab';
-          QahvehKhanehRenderer.renderHero({
-            ctx,
-            heroId: bossHeroId,
-            facing: 1,
-            animFrame: performance.now() * 0.008,
-            vx: e.vx,
-            vy: 0,
-            isGrounded: true,
-            isAttacking: e.isAttacking,
-            attackType: 'heavy',
-            isHit: e.isHit,
-            graphicsTier: this.graphicsTier,
-            time: performance.now() * 0.001,
-          });
-        } else if (this.stage.id === 3) {
-          // Stage 3: Div Sepid (Huge chalk-white demon, curved ram horns, red eyes, spiked club)
-          ctx.fillStyle = e.isHit ? '#ef4444' : '#f8fafc';
-          ctx.beginPath();
-          ctx.roundRect(-e.width / 2, -e.height / 2 + 20, e.width, e.height - 20, [12, 12, 4, 4]);
-          ctx.fill();
-
-          // Demon Head
-          ctx.fillStyle = '#e2e8f0';
-          ctx.beginPath();
-          ctx.arc(0, -e.height / 2 + 14, 22, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Glowing Red Eyes
-          ctx.fillStyle = '#ef4444';
-          ctx.shadowColor = '#ef4444';
-          ctx.shadowBlur = 8;
-          ctx.fillRect(-10, -e.height / 2 + 10, 7, 7);
-          ctx.fillRect(3, -e.height / 2 + 10, 7, 7);
-          ctx.shadowBlur = 0;
-
-          // Massive Ram Horns
-          ctx.fillStyle = '#d4af37';
-          ctx.beginPath();
-          ctx.moveTo(-14, -e.height / 2 + 6);
-          ctx.quadraticCurveTo(-38, -e.height / 2 - 20, -30, -e.height / 2 - 32);
-          ctx.lineTo(-10, -e.height / 2 - 6);
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.moveTo(14, -e.height / 2 + 6);
-          ctx.quadraticCurveTo(38, -e.height / 2 - 20, 30, -e.height / 2 - 32);
-          ctx.lineTo(10, -e.height / 2 - 6);
-          ctx.fill();
-
-          // Spiked Club in hand
-          ctx.fillStyle = '#475569';
-          ctx.fillRect(20, -e.height / 2 + 10, 12, 50);
-          ctx.fillStyle = '#94a3b8';
-          ctx.fillRect(16, -e.height / 2 + 12, 20, 16);
-        } else if (this.stage.id === 2) {
-          // Stage 2: Zahhak (Dark royal robes, serpents emerging from shoulders)
-          ctx.fillStyle = e.isHit ? '#ef4444' : '#450a0a';
-          ctx.beginPath();
-          ctx.roundRect(-e.width / 2, -e.height / 2 + 20, e.width, e.height - 20, [8, 8, 4, 4]);
-          ctx.fill();
-
-          // Head & Crown
-          ctx.fillStyle = '#78350f';
-          ctx.beginPath();
-          ctx.arc(0, -e.height / 2 + 12, 16, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#eab308';
-          ctx.beginPath();
-          ctx.moveTo(-12, -e.height / 2 + 2);
-          ctx.lineTo(-12, -e.height / 2 - 10);
-          ctx.lineTo(-4, -e.height / 2 - 4);
-          ctx.lineTo(0, -e.height / 2 - 12);
-          ctx.lineTo(4, -e.height / 2 - 4);
-          ctx.lineTo(12, -e.height / 2 - 10);
-          ctx.lineTo(12, -e.height / 2 + 2);
-          ctx.fill();
-
-          // Left Shoulder Serpent
-          ctx.strokeStyle = '#022c22';
-          ctx.lineWidth = 6;
-          ctx.beginPath();
-          ctx.moveTo(-16, -e.height / 2 + 24);
-          ctx.quadraticCurveTo(-36, -e.height / 2 + 6, -30, -e.height / 2 - 16);
-          ctx.stroke();
-          // Serpent head
-          ctx.fillStyle = '#15803d';
-          ctx.beginPath();
-          ctx.arc(-30, -e.height / 2 - 16, 6, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Right Shoulder Serpent
-          ctx.beginPath();
-          ctx.moveTo(16, -e.height / 2 + 24);
-          ctx.quadraticCurveTo(36, -e.height / 2 + 6, 30, -e.height / 2 - 16);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(30, -e.height / 2 - 16, 6, 0, Math.PI * 2);
-          ctx.fill();
-        } else if (this.stage.id === 6) {
-          // Stage 6: Esfandiar (Invincible Golden Armor, Farreh Halo)
-          ctx.shadowColor = '#facc15';
-          ctx.shadowBlur = 12;
-          ctx.fillStyle = e.isHit ? '#ef4444' : '#ca8a04';
-          ctx.beginPath();
-          ctx.roundRect(-e.width / 2, -e.height / 2 + 20, e.width, e.height - 20, [6, 6, 4, 4]);
-          ctx.fill();
-
-          // Golden Head & Halo
-          ctx.fillStyle = '#fde047';
-          ctx.beginPath();
-          ctx.arc(0, -e.height / 2 + 10, 16, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-
-          // Divine Lance
-          ctx.strokeStyle = '#fef08a';
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.moveTo(18, e.height / 2);
-          ctx.lineTo(24, -e.height / 2 - 28);
-          ctx.stroke();
-        } else {
-          // Stage 1, 5, 7 or Generic Boss
-          ctx.fillStyle = e.isHit ? '#ef4444' : '#0f172a';
-          ctx.fillRect(-e.width / 2, -e.height / 2 + 20, e.width, e.height - 20);
-
-          ctx.fillStyle = '#1e293b';
-          ctx.beginPath();
-          ctx.arc(0, -e.height / 2 + 15, 18, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#ef4444';
-          ctx.fillRect(-8, -e.height / 2 + 10, 5, 5);
-          ctx.fillRect(3, -e.height / 2 + 10, 5, 5);
-
-          ctx.fillStyle = '#d4af37';
-          ctx.fillRect(-12, -e.height / 2 - 4, 24, 6);
-        }
-      } else if (e.type === 'flying_akvan') {
-        ctx.fillStyle = e.isHit ? '#ef4444' : '#7c3aed';
-        ctx.beginPath();
-        ctx.arc(0, 0, 16, 0, Math.PI * 2);
-        ctx.fill();
-
-        const wingFlap = Math.sin(performance.now() * 0.015) * 14;
-        ctx.fillStyle = '#4c1d95';
-        ctx.beginPath();
-        ctx.moveTo(-8, -4);
-        ctx.lineTo(-26, -20 + wingFlap);
-        ctx.lineTo(-12, 6);
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(8, -4);
-        ctx.lineTo(26, -20 + wingFlap);
-        ctx.lineTo(12, 6);
-        ctx.fill();
-      } else {
-        ctx.fillStyle = e.isHit ? '#ef4444' : '#b91c1c';
-        ctx.fillRect(-e.width / 2, -e.height / 2 + 12, e.width, e.height - 12);
-
-        ctx.fillStyle = '#450a0a';
-        ctx.beginPath();
-        ctx.arc(0, -e.height / 2 + 8, 10, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#d4af37';
-        ctx.fillRect(-8, -e.height / 2 - 6, 3, 7);
-        ctx.fillRect(5, -e.height / 2 - 6, 3, 7);
-
-        ctx.fillStyle = '#94a3b8';
-        ctx.fillRect(8, -6, 18, 4);
-      }
+      QahvehKhanehRenderer.renderEnemy({
+        ctx,
+        type: e.type,
+        stageId: this.stage.id,
+        heroId: this.hero.id,
+        width: e.width,
+        height: e.height,
+        vx: e.vx,
+        isAttacking: e.isAttacking,
+        isHit: e.isHit,
+        isBoss: e.isBoss,
+        graphicsTier: this.graphicsTier,
+        time: now,
+      });
 
       ctx.restore();
 
+      // Ornate Dark-Gold & Crimson Health Gauge above Enemy
       const hpPct = Math.max(0, e.hp / e.maxHp);
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(e.x, e.y - 12, e.width, 5);
-      ctx.fillStyle = e.isBoss ? '#ef4444' : '#22c55e';
-      ctx.fillRect(e.x, e.y - 12, e.width * hpPct, 5);
+      const barW = e.isBoss ? Math.max(76, e.width * 1.2) : Math.max(44, e.width);
+      const barX = e.x + e.width / 2 - barW / 2;
+      const barY = e.y - (e.isBoss ? 34 : 22);
+
+      ctx.fillStyle = '#09090b';
+      ctx.fillRect(barX - 1, barY - 1, barW + 2, 7);
+      ctx.fillStyle = e.isBoss ? '#dc2626' : '#b91c1c';
+      ctx.fillRect(barX, barY, barW * hpPct, 5);
+      ctx.strokeStyle = e.isBoss ? '#f59e0b' : '#52525b';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(barX - 1, barY - 1, barW + 2, 7);
     });
   }
 
   private renderProjectiles(ctx: CanvasRenderingContext2D) {
     this.projectiles.forEach(p => {
-      ctx.fillStyle = p.color;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      const angle = Math.atan2(p.vy, p.vx);
+      ctx.rotate(angle);
+
+      // Feathered Persian War-Arrow with Glowing Broadhead
+      ctx.strokeStyle = p.fromPlayer ? '#fde047' : '#d97706';
+      ctx.lineWidth = 2.2;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.moveTo(-14, 0);
+      ctx.lineTo(10, 0);
+      ctx.stroke();
+
+      // Steel Broadhead Tip (پیکان پولادین دوشاخ)
+      ctx.fillStyle = p.fromPlayer ? '#fef08a' : '#e2e8f0';
+      ctx.beginPath();
+      ctx.moveTo(15, 0);
+      ctx.lineTo(7, -3.5);
+      ctx.lineTo(9, 0);
+      ctx.lineTo(7, 3.5);
+      ctx.closePath();
       ctx.fill();
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      // Crimson / Royal Fletching Feathers (پر انتهای تیر)
+      ctx.fillStyle = p.fromPlayer ? '#10b981' : '#dc2626';
       ctx.beginPath();
-      ctx.arc(p.x - (p.vx * 0.02), p.y - (p.vy * 0.02), p.radius * 0.7, 0, Math.PI * 2);
+      ctx.moveTo(-10, 0);
+      ctx.lineTo(-16, -3.5);
+      ctx.lineTo(-14, 0);
+      ctx.lineTo(-16, 3.5);
+      ctx.closePath();
       ctx.fill();
+
+      ctx.restore();
     });
   }
 

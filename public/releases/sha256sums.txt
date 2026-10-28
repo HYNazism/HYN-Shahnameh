@@ -1,0 +1,4 @@
+d015ccb02ae0c026221e70c6bc235604f607b0f431ac3569fd1a95d2ce5cdeef  shahnameh-v1.0.5-web-pwa.zip
+74df9e2a0455a810fc9f2275d25d4e9edcddc9a7cbc379e68f120b91f333e8f9  shahnameh-v1.0.5-android-package.zip
+ea17d0fa8134b6805bbda85770aa3612489b19321a123fe39766b1c72df66cdc  shahnameh-v1.0.5-desktop-bundle.zip
+a2be958554733a133fe0e44cf4549ffa878eba7f263a7843dc687b620e02fe80  shahnameh-v1.0.5-full-source.zip

@@ -6,6 +6,7 @@ import { MobileControls } from './MobileControls';
 import { GraphicsSelector } from './GraphicsSelector';
 import { Pause, Play, Volume2, VolumeX, ShieldAlert, Zap, BookOpen, X, Scroll, Flame, Swords } from 'lucide-react';
 import { sound } from '../utils/audio';
+import { StoryLogicManager } from '../game/StoryLogicManager';
 
 interface Props {
   hero: HeroDef;
@@ -60,8 +61,14 @@ export const GameCanvas: React.FC<Props> = ({
   // In-battle narrative subtitle banner
   const [inBattleSubtitle, setInBattleSubtitle] = useState<string | null>(null);
 
-  // Dialogue Banner (for Chapter 4 or story stages)
-  const [showDialogue, setShowDialogue] = useState(!!stage.dialogueProseKey);
+  const storyProfile = StoryLogicManager.getStageProfile(stage, hero.id, lang);
+
+  // Dialogue Banner (filtered & personalized by StoryLogicManager)
+  const [showDialogue, setShowDialogue] = useState(!!storyProfile.dialogueProse);
+
+  useEffect(() => {
+    setShowDialogue(!!storyProfile.dialogueProse);
+  }, [stage.id, hero.id, storyProfile.dialogueProse]);
 
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(sound.getIsMuted());
@@ -305,38 +312,9 @@ export const GameCanvas: React.FC<Props> = ({
 
         {/* Center: Boss HP Bar if active */}
         {bossHp !== undefined && bossMaxHp !== undefined && bossHp > 0 && (() => {
-          const bossDisplayName =
-            stage.id === 4
-              ? hero.id === 'gordafarid'
-                ? 'سهراب یل (هماورد دژ سپید)'
-                : hero.id === 'sohrab'
-                ? 'گردآفرید شیرزن (مدافع دژ سپید)'
-                : 'سهراب یل پهلوان توران'
-              : t[stage.bossNameKey];
-
-          const bossDuelId =
-            stage.id === 4
-              ? hero.id === 'sohrab'
-                ? 'gordafarid'
-                : 'sohrab'
-              : stage.id === 3
-              ? 'div_sepid'
-              : stage.id === 5
-              ? 'esfandiar'
-              : 'div_sepid';
-
-          const duelButtonText =
-            stage.id === 4
-              ? hero.id === 'gordafarid'
-                ? 'دوئل حماسی با سهراب در دژ سپید'
-                : hero.id === 'sohrab'
-                ? 'دوئل تن‌به‌تن با گردآفرید شیرزن'
-                : 'دوئل سرنوشت‌ساز رستم و سهراب'
-              : stage.id === 3
-              ? 'دوئل با دیو سپید مازندران'
-              : stage.id === 5
-              ? 'دوئل با اسفندیار رویین‌تن'
-              : 'دوئل تن‌به‌تن با هماورد (قفل تیغه‌ها)';
+          const bossDisplayName = storyProfile.bossConfig.bossDisplayName;
+          const bossDuelId = storyProfile.bossConfig.duelOpponentId;
+          const duelButtonText = storyProfile.bossConfig.duelButtonLabel;
 
           return (
             <div className="pointer-events-auto flex flex-col items-center gap-1.5 bg-red-950/90 px-3 md:px-4 py-2 rounded-2xl border border-red-500/70 shadow-2xl backdrop-blur-md max-w-sm w-full mx-2 md:mx-4 animate-fadeIn">
@@ -435,13 +413,13 @@ export const GameCanvas: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Story Dialogue Banner (for Chapter 4 Rostam & Sohrab) */}
-      {showDialogue && stage.dialogueProseKey && (
+      {/* Story Dialogue Banner (filtered by StoryLogicManager per hero & stage) */}
+      {showDialogue && storyProfile.dialogueProse && (
         <div className="absolute top-24 inset-x-4 max-w-xl mx-auto z-30 pointer-events-auto bg-slate-950/95 border-2 border-amber-500/70 p-4 rounded-2xl shadow-2xl backdrop-blur-md flex flex-col gap-2.5 animate-fadeIn">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
             <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
               <BookOpen className="w-4 h-4" />
-              <span>دیالوگ منظوم شاهنامه · نبرد سرنوشت‌ساز سهراب و رستم</span>
+              <span>{storyProfile.dialogueHeader}</span>
             </div>
             <button
               onClick={() => setShowDialogue(false)}
@@ -452,7 +430,7 @@ export const GameCanvas: React.FC<Props> = ({
           </div>
 
           <p className="text-xs md:text-sm text-amber-100 italic leading-relaxed text-center py-1">
-            {t[stage.dialogueProseKey]}
+            {storyProfile.dialogueProse}
           </p>
 
           <button

@@ -662,12 +662,10 @@ export class DuelEngine {
     const ctx = this.ctx;
     const time = performance.now() * 0.001;
 
-    // For hero characters, render with authentic Persian Qahveh-Khaneh traditional epic style
-    if (f.id !== 'div_sepid') {
-      ctx.save();
-      // Center origin at pahlavan torso (ground is at f.y, renderer baseline is at +26)
-      ctx.translate(f.x, f.y - 26);
+    ctx.save();
+    ctx.translate(f.x, f.y - 26);
 
+    if (f.id !== 'div_sepid') {
       QahvehKhanehRenderer.renderHero({
         ctx,
         heroId: f.id,
@@ -684,111 +682,27 @@ export class DuelEngine {
         rageRatio: Math.min(1.0, f.rage / 100),
         graphicsTier: this.graphicsTier,
         time,
+        scale: 1.48,
       });
-
-      ctx.restore();
-      return;
-    }
-
-    // White Div (دیو سپید مازندران) with formidable Qahveh-Khaneh demon style
-    ctx.save();
-    ctx.translate(f.x, f.y);
-    if (f.facing === -1) {
-      ctx.scale(-1, 1);
-    }
-
-    // Demonic Shadow
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.beginPath();
-    ctx.ellipse(0, 2, 28, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Hit reaction
-    if (f.isHit) {
-      ctx.fillStyle = '#ef4444';
-      ctx.shadowColor = '#ef4444';
-      ctx.shadowBlur = 14;
-    }
-
-    // Heavy Demonic Breathing
-    const breath = Math.sin(f.animFrame * 0.6) * 2;
-
-    // Dark Tattered Cape
-    ctx.fillStyle = '#1e293b';
-    ctx.beginPath();
-    ctx.moveTo(-12, -54);
-    ctx.quadraticCurveTo(-34, -30, -36 + Math.sin(time * 5) * 5, -6);
-    ctx.lineTo(-14, -4);
-    ctx.closePath();
-    ctx.fill();
-
-    // Muscular Slate Legs & Demon Claws
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(-16, -22, 14, 22);
-    ctx.fillRect(4, -22, 14, 22);
-    ctx.fillStyle = '#334155';
-    ctx.fillRect(-18, -8, 16, 8);
-    ctx.fillRect(2, -8, 16, 8);
-
-    // Giant White Demon Torso with Demon Veins
-    ctx.fillStyle = f.isHit ? '#ef4444' : '#f8fafc';
-    ctx.fillRect(-22, -64 + breath, 44, 46);
-    ctx.fillStyle = '#475569';
-    ctx.fillRect(-20, -42 + breath, 40, 8); // Iron Spiked Girdle
-
-    // Red Demonic Chest Runes
-    ctx.fillStyle = '#ef4444';
-    ctx.beginPath();
-    ctx.arc(-8, -50 + breath, 3, 0, Math.PI * 2);
-    ctx.arc(8, -50 + breath, 3, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Demon Head with Ashen Skin
-    ctx.fillStyle = '#e2e8f0';
-    ctx.beginPath();
-    ctx.arc(0, -74 + breath, 18, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Glowing Crimson Demon Eyes
-    ctx.fillStyle = '#ef4444';
-    ctx.shadowColor = '#ef4444';
-    ctx.shadowBlur = 10;
-    ctx.fillRect(3, -77 + breath, 6, 4);
-    ctx.fillRect(-9, -77 + breath, 6, 4);
-    ctx.shadowBlur = 0;
-
-    // Giant Curved Ram Horns (شاخ‌های غول‌پیکر دیو سپید)
-    ctx.fillStyle = '#334155';
-    ctx.beginPath();
-    ctx.moveTo(-14, -80 + breath);
-    ctx.quadraticCurveTo(-34, -98, -42, -114);
-    ctx.lineTo(-10, -84 + breath);
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(14, -80 + breath);
-    ctx.quadraticCurveTo(34, -98, 42, -114);
-    ctx.lineTo(10, -84 + breath);
-    ctx.fill();
-
-    // Demonic Spiked Granite Club
-    ctx.save();
-    if (f.isAttacking) {
-      const swing = (1 - f.attackTimer / 0.3) * Math.PI - 0.4;
-      ctx.rotate(swing);
-      ctx.translate(22, -26);
     } else {
-      ctx.translate(18, -22);
+      if (f.facing === -1) {
+        ctx.scale(-1, 1);
+      }
+      QahvehKhanehRenderer.renderEnemy({
+        ctx,
+        type: 'boss',
+        stageId: 3,
+        heroId: 'rostam',
+        width: 64,
+        height: 86,
+        vx: f.vx,
+        isAttacking: f.isAttacking,
+        isHit: f.isHit,
+        isBoss: true,
+        graphicsTier: this.graphicsTier,
+        time,
+      });
     }
-    ctx.fillStyle = '#334155';
-    ctx.fillRect(-3, -42, 9, 48);
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(-8, -48, 19, 18);
-    ctx.fillStyle = '#e2e8f0';
-    ctx.fillRect(-11, -44, 4, 4);
-    ctx.fillRect(11, -44, 4, 4);
-    ctx.fillRect(-1, -52, 5, 5);
-    ctx.restore();
 
     ctx.restore();
   }
