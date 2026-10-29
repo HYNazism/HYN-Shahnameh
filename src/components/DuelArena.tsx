@@ -3,7 +3,7 @@ import { HeroDef, HeroId, GraphicsTier, Language } from '../types/game';
 import { HEROES } from '../constants/gameData';
 import { TRANSLATIONS } from '../constants/translations';
 import { DuelEngine, ClashState } from '../game/DuelEngine';
-import { sound } from '../utils/audio';
+import { ManuscriptFrame } from './ShahnamehManuscriptFrame';
 import {
   Sword,
   Shield,
@@ -11,17 +11,14 @@ import {
   Flame,
   ArrowLeft,
   RotateCcw,
-  Trophy,
-  Skull,
   Play,
   Swords,
-  Sparkles,
 } from 'lucide-react';
 
 interface DuelRival {
   id: string;
-  name: string;
-  title: string;
+  names: Record<Language, string>;
+  titles: Record<Language, string>;
   color: string;
   accentColor: string;
   heroId: HeroId | string;
@@ -31,8 +28,18 @@ interface DuelRival {
 const RIVALS: DuelRival[] = [
   {
     id: 'rostam',
-    name: 'رستم دستان',
-    title: 'تهمتن ایران‌زمین و پیلتن سیستان',
+    names: {
+      fa: 'رستم دستان',
+      en: 'Rostam the Mighty',
+      ar: 'رستم دستان',
+      fr: 'Rostam le Colosse',
+    },
+    titles: {
+      fa: 'تهمتن ایران‌زمین و پیلتن سیستان',
+      en: 'Champion of Iran & Colossus of Sistan',
+      ar: 'بطل إيران العظيم وفارس سيستان',
+      fr: 'Champion d\'Iran & Colosse du Sistan',
+    },
     color: '#d97706',
     accentColor: '#b45309',
     heroId: 'rostam',
@@ -40,8 +47,18 @@ const RIVALS: DuelRival[] = [
   },
   {
     id: 'sohrab',
-    name: 'سهراب یل',
-    title: 'تهمتن جوان توران',
+    names: {
+      fa: 'سهراب یل',
+      en: 'Sohrab the Valiant',
+      ar: 'سهراب الباسل',
+      fr: 'Sohrab le Vaillant',
+    },
+    titles: {
+      fa: 'سپهدار جوان توران و استاد تیغ دمشقی',
+      en: 'Young General of Turan & Master of the Scimitar',
+      ar: 'قائد توران الشاب وسيد السيف الدمشقي',
+      fr: 'Jeune Général du Touran & Maître du Cimeterre',
+    },
     color: '#0891b2',
     accentColor: '#38bdf8',
     heroId: 'sohrab',
@@ -49,8 +66,18 @@ const RIVALS: DuelRival[] = [
   },
   {
     id: 'gordafarid',
-    name: 'گردآفرید شیرزن',
-    title: 'مدافع دژ سپید',
+    names: {
+      fa: 'گردآفرید شیرزن',
+      en: 'Gordafarid the Fierce',
+      ar: 'كردآفريد الفارسة',
+      fr: 'Gordafarid l\'Intrépide',
+    },
+    titles: {
+      fa: 'پاسدار دلیر دژ سپید و کماندار کیانی',
+      en: 'Heroine of the White Fortress & Kayanian Archer',
+      ar: 'حامية الحصن الأبيض ورامية السهام الكيانية',
+      fr: 'Héroïne de la Forteresse Blanche & Archère d\'Élite',
+    },
     color: '#059669',
     accentColor: '#34d399',
     heroId: 'gordafarid',
@@ -58,16 +85,36 @@ const RIVALS: DuelRival[] = [
   },
   {
     id: 'div_sepid',
-    name: 'دیو سپید',
-    title: 'سالار مازندران',
+    names: {
+      fa: 'دیو سپید مازندران',
+      en: 'The Colossal White Div',
+      ar: 'الشيطان الأبيض العملاق',
+      fr: 'Le Colossal Démon Blanc',
+    },
+    titles: {
+      fa: 'سالار تاریکی و اهریمن غار مازندران',
+      en: 'Overlord of Darkness in the Mazandaran Cavern',
+      ar: 'سيد الظلام في كهف مازندران',
+      fr: 'Seigneur des Ténèbres de la Caverne du Mazandaran',
+    },
     color: '#475569',
     accentColor: '#ef4444',
     heroId: 'div_sepid',
   },
   {
     id: 'esfandiar',
-    name: 'اسفندیار رویین‌تن',
-    title: 'شاهزاده رویین‌تن کیانی',
+    names: {
+      fa: 'اسفندیار رویین‌تن',
+      en: 'Esfandiyar the Invincible',
+      ar: 'إسفنديار الحصين',
+      fr: 'Esfandiyar l\'Invincible',
+    },
+    titles: {
+      fa: 'شاهزاده شکست‌ناپذیر کیانی و فاتح هفت‌خوان',
+      en: 'Brazen-Bodied Kayanian Prince',
+      ar: 'الأمير الكياني ذو الجسد المنيع',
+      fr: 'Prince Kayanide au Corps d\'Airain',
+    },
     color: '#b45309',
     accentColor: '#fef08a',
     heroId: 'esfandiar',
@@ -76,6 +123,9 @@ const RIVALS: DuelRival[] = [
 
 interface Props {
   playerHeroId: HeroId;
+  playerHeroRenderId?: string;
+  playerCustomName?: string;
+  playerCustomTitle?: string;
   graphicsTier: GraphicsTier;
   lang: Language;
   onExit: () => void;
@@ -85,26 +135,31 @@ interface Props {
 
 export const DuelArena: React.FC<Props> = ({
   playerHeroId,
+  playerHeroRenderId,
+  playerCustomName,
+  playerCustomTitle,
   graphicsTier,
   lang,
   onExit,
   onVictoryReward,
   initialOpponentId,
 }) => {
+  const t = TRANSLATIONS[lang];
+  const isRtl = lang === 'fa' || lang === 'ar';
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<DuelEngine | null>(null);
 
-  const availableRivals = RIVALS.filter(r => r.id !== playerHeroId);
+  const effectivePlayerId = playerHeroRenderId || playerHeroId;
+  const availableRivals = RIVALS.filter(r => r.id !== effectivePlayerId);
 
   const [selectedOpponent, setSelectedOpponent] = useState<DuelRival>(() => {
     if (initialOpponentId) {
       const found = RIVALS.find(r => r.id === initialOpponentId);
-      if (found && found.id !== playerHeroId) return found;
+      if (found && found.id !== effectivePlayerId) return found;
     }
-    // Intelligent contextual pairings
     if (playerHeroId === 'gordafarid') return RIVALS.find(r => r.id === 'sohrab') || availableRivals[0];
     if (playerHeroId === 'rostam') return RIVALS.find(r => r.id === 'sohrab') || availableRivals[0];
-    if (playerHeroId === 'sohrab') return RIVALS.find(r => r.id === 'gordafarid') || availableRivals[0];
+    if (playerHeroId === 'sohrab') return RIVALS.find(r => r.id === 'rostam') || availableRivals[0];
     return availableRivals[0] || RIVALS[0];
   });
 
@@ -126,6 +181,21 @@ export const DuelArena: React.FC<Props> = ({
   const [p2Stam, setP2Stam] = useState(100);
 
   const playerHero = HEROES.find(h => h.id === playerHeroId) || HEROES[0];
+
+  const resolvedPlayerName =
+    playerCustomName ||
+    t[`${playerHero.id}_name`] ||
+    RIVALS.find(r => r.id === playerHero.id)?.names[lang] ||
+    t.rostam_name;
+
+  const resolvedPlayerTitle =
+    playerCustomTitle ||
+    t[`${playerHero.id}_title`] ||
+    RIVALS.find(r => r.id === playerHero.id)?.titles[lang] ||
+    t.rostam_title;
+
+  const opponentName = selectedOpponent.names[lang] || selectedOpponent.names.en;
+  const opponentTitle = selectedOpponent.titles[lang] || selectedOpponent.titles.en;
 
   const handleStartDuel = useCallback(() => {
     if (!canvasRef.current) return;
@@ -150,32 +220,18 @@ export const DuelArena: React.FC<Props> = ({
       setIsDuelActive(false);
     };
 
-    const playerHeroName =
-      playerHero.id === 'rostam'
-        ? 'رستم دستان'
-        : playerHero.id === 'sohrab'
-        ? 'سهراب یل'
-        : 'گردآفرید شیرزن';
-
-    const playerHeroTitle =
-      playerHero.id === 'gordafarid'
-        ? 'مدافع دژ سپید'
-        : playerHero.id === 'sohrab'
-        ? 'پهلوان جوان توران'
-        : 'پیلتن سیستان و تهمتن ایران';
-
     engine.initDuel(
       {
-        name: playerHeroName,
-        title: playerHeroTitle,
+        name: resolvedPlayerName,
+        title: resolvedPlayerTitle,
         color: playerHero.color,
         accentColor: playerHero.accentColor,
-        heroId: playerHero.id,
+        heroId: effectivePlayerId as HeroId,
         heroDef: playerHero,
       },
       {
-        name: selectedOpponent.name,
-        title: selectedOpponent.title,
+        name: opponentName,
+        title: opponentTitle,
         color: selectedOpponent.color,
         accentColor: selectedOpponent.accentColor,
         heroId: selectedOpponent.heroId,
@@ -185,7 +241,17 @@ export const DuelArena: React.FC<Props> = ({
     );
 
     engine.start();
-  }, [playerHero, selectedOpponent, graphicsTier, onVictoryReward]);
+  }, [
+    playerHero,
+    effectivePlayerId,
+    resolvedPlayerName,
+    resolvedPlayerTitle,
+    selectedOpponent,
+    opponentName,
+    opponentTitle,
+    graphicsTier,
+    onVictoryReward,
+  ]);
 
   // Keep HUD updated with engine telemetry
   useEffect(() => {
@@ -228,7 +294,7 @@ export const DuelArena: React.FC<Props> = ({
         }
       } else if (e.code === 'KeyK') {
         engineRef.current.playerAttack('heavy');
-      } else if (e.code === 'KeyL') {
+      } else if (e.code === 'KeyL' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
         engineRef.current.playerParry(true);
       } else if (e.code === 'KeyU') {
         engineRef.current.playerSpecial();
@@ -239,7 +305,7 @@ export const DuelArena: React.FC<Props> = ({
       if (!engineRef.current) return;
       if (e.code === 'KeyA' || e.code === 'KeyD' || e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
         engineRef.current.playerMove(0);
-      } else if (e.code === 'KeyL') {
+      } else if (e.code === 'KeyL' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
         engineRef.current.playerParry(false);
       }
     };
@@ -262,37 +328,35 @@ export const DuelArena: React.FC<Props> = ({
     };
   }, []);
 
-  const isRtl = lang === 'fa' || lang === 'ar';
-
   return (
     <div
       dir={isRtl ? 'rtl' : 'ltr'}
-      className="relative w-full h-full bg-[#070b16] text-slate-100 flex flex-col justify-between overflow-hidden select-none"
+      className="relative w-full h-full zar-afshan-bg text-slate-100 flex flex-col justify-between overflow-hidden select-none"
     >
       {/* Top Bar Navigation */}
-      <header className="safe-top safe-px p-3 md:p-4 bg-slate-900/95 border-b border-amber-500/30 flex items-center justify-between z-20 backdrop-blur-md">
+      <header className="safe-top safe-px p-3 md:p-4 bg-[#050a18]/95 border-b-2 border-amber-500/40 flex flex-wrap items-center justify-between gap-2 z-20 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
               if (engineRef.current) engineRef.current.stop();
               onExit();
             }}
-            className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+            className="p-2 bg-slate-900 hover:bg-slate-800 border border-amber-500/40 rounded-xl text-amber-200 hover:text-amber-100 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold"
           >
             <ArrowLeft className={`w-4 h-4 ${isRtl ? 'rotate-180' : ''}`} />
-            <span>{isRtl ? 'بازگشت به اردوگاه' : 'Return to Camp'}</span>
+            <span>{t.return_to_menu}</span>
           </button>
 
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300">
               <Swords className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm md:text-base font-black text-amber-300">
-                میدان دوئل تن‌به‌تن پهلوانان شاهنامه
+              <h2 className="text-sm md:text-base font-black text-amber-200 nastaliq-title">
+                {t.duel_arena_title}
               </h2>
-              <span className="text-[10px] text-slate-400 font-medium">
-                سیستم مبارزه حماسی با مکانیک قفل سلاح‌ها (Blade Clash)
+              <span className="text-[10px] text-amber-100/75 font-medium block">
+                {t.duel_arena_subtitle}
               </span>
             </div>
           </div>
@@ -300,20 +364,22 @@ export const DuelArena: React.FC<Props> = ({
 
         {/* Rival Quick Selector */}
         {!isDuelActive && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 hidden sm:inline">حریف رزم:</span>
-            <div className="flex gap-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-amber-200/80 hidden sm:inline font-bold">
+              {t.duel_select_opponent_title}:
+            </span>
+            <div className="flex gap-1.5 flex-wrap">
               {availableRivals.map(rival => (
                 <button
                   key={rival.id}
                   onClick={() => setSelectedOpponent(rival)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                     selectedOpponent.id === rival.id
-                      ? 'bg-amber-500 text-slate-950 shadow-md font-black ring-1 ring-amber-300'
-                      : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'
+                      ? 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 border-amber-200 shadow-md font-black'
+                      : 'bg-slate-900/90 text-amber-200/80 border-amber-500/30 hover:border-amber-400'
                   }`}
                 >
-                  {rival.name}
+                  {rival.names[lang] || rival.names.en}
                 </button>
               ))}
             </div>
@@ -323,22 +389,20 @@ export const DuelArena: React.FC<Props> = ({
 
       {/* Duel HUD: Health, Stamina & Rage Bars */}
       {isDuelActive && (
-        <div className="absolute top-16 inset-x-4 z-20 flex items-center justify-between pointer-events-none">
+        <div className="absolute top-16 inset-x-4 z-20 flex items-center justify-between pointer-events-none gap-2">
           {/* Player Fighter Card */}
-          <div className="flex items-center gap-3 bg-slate-950/90 border border-amber-500/50 p-2.5 rounded-2xl backdrop-blur-md w-64 sm:w-76 shadow-2xl">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-400/60 flex items-center justify-center text-2xl font-bold shrink-0">
-              {playerHero.id === 'gordafarid' ? '🏹' : playerHero.id === 'sohrab' ? '🦅' : '🦁'}
+          <div className="flex items-center gap-3 bg-[#050a18]/92 jadval-double-border p-2.5 rounded-2xl backdrop-blur-md w-64 sm:w-76 shadow-2xl">
+            <div className="w-11 h-11 rounded-xl bg-amber-500/20 border border-amber-400/60 flex items-center justify-center text-xl font-bold shrink-0">
+              ⚔️
             </div>
             <div className="flex-1 flex flex-col gap-1 overflow-hidden">
               <div className="flex justify-between items-center text-xs font-black">
-                <span className="text-amber-300 truncate">
-                  {playerHero.id === 'rostam' ? 'رستم دستان' : playerHero.id === 'sohrab' ? 'سهراب یل' : 'گردآفرید شیرزن'}
-                </span>
+                <span className="text-amber-200 truncate">{resolvedPlayerName}</span>
                 <span className="font-mono text-emerald-400 tabular-nums">{p1Hp}%</span>
               </div>
 
               {/* HP Bar */}
-              <div className="w-full h-3 bg-slate-900 rounded-lg overflow-hidden p-0.5 border border-slate-700">
+              <div className="w-full h-3 bg-slate-950 rounded-lg overflow-hidden p-0.5 border border-amber-500/40">
                 <div
                   className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded transition-all duration-150"
                   style={{ width: `${p1Hp}%` }}
@@ -347,13 +411,13 @@ export const DuelArena: React.FC<Props> = ({
 
               {/* Stamina & Rage Bars */}
               <div className="flex gap-1.5">
-                <div className="flex-1 h-1.5 bg-slate-900 rounded overflow-hidden">
+                <div className="flex-1 h-1.5 bg-slate-950 rounded overflow-hidden">
                   <div
                     className="h-full bg-sky-400 transition-all duration-100"
                     style={{ width: `${p1Stam}%` }}
                   />
                 </div>
-                <div className="flex-1 h-1.5 bg-slate-900 rounded overflow-hidden">
+                <div className="flex-1 h-1.5 bg-slate-950 rounded overflow-hidden">
                   <div
                     className="h-full bg-amber-400 transition-all duration-100"
                     style={{ width: `${p1Rage}%` }}
@@ -369,28 +433,28 @@ export const DuelArena: React.FC<Props> = ({
           </div>
 
           {/* Opponent Fighter Card */}
-          <div className="flex items-center gap-3 bg-slate-950/90 border border-rose-500/50 p-2.5 rounded-2xl backdrop-blur-md w-64 sm:w-76 shadow-2xl flex-row-reverse text-right">
-            <div className="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-400/60 flex items-center justify-center text-2xl font-bold shrink-0">
-              {selectedOpponent.heroId === 'gordafarid' ? '🏹' : selectedOpponent.heroId === 'sohrab' ? '🦅' : selectedOpponent.heroId === 'div_sepid' ? '👹' : selectedOpponent.heroId === 'esfandiar' ? '👑' : '🦁'}
+          <div className="flex items-center gap-3 bg-[#050a18]/92 border-2 border-rose-500/60 p-2.5 rounded-2xl backdrop-blur-md w-64 sm:w-76 shadow-2xl">
+            <div className="w-11 h-11 rounded-xl bg-rose-500/20 border border-rose-400/60 flex items-center justify-center text-xl font-bold shrink-0">
+              👑
             </div>
             <div className="flex-1 flex flex-col gap-1 overflow-hidden">
-              <div className="flex justify-between items-center text-xs font-black flex-row-reverse">
-                <span className="text-rose-300 truncate">{selectedOpponent.name}</span>
+              <div className="flex justify-between items-center text-xs font-black">
+                <span className="text-rose-300 truncate">{opponentName}</span>
                 <span className="font-mono text-rose-400 tabular-nums">{p2Hp}%</span>
               </div>
 
               {/* HP Bar */}
-              <div className="w-full h-3 bg-slate-900 rounded-lg overflow-hidden p-0.5 border border-slate-700">
+              <div className="w-full h-3 bg-slate-950 rounded-lg overflow-hidden p-0.5 border border-rose-500/40">
                 <div
-                  className="h-full bg-gradient-to-l from-rose-600 to-rose-400 rounded transition-all duration-150"
+                  className="h-full bg-gradient-to-r from-rose-600 to-rose-400 rounded transition-all duration-150"
                   style={{ width: `${p2Hp}%` }}
                 />
               </div>
 
               {/* Stamina Bar */}
-              <div className="w-full h-1.5 bg-slate-900 rounded overflow-hidden">
+              <div className="w-full h-1.5 bg-slate-950 rounded overflow-hidden">
                 <div
-                  className="h-full bg-sky-400 transition-all duration-100 float-right"
+                  className="h-full bg-sky-400 transition-all duration-100"
                   style={{ width: `${p2Stam}%` }}
                 />
               </div>
@@ -400,70 +464,70 @@ export const DuelArena: React.FC<Props> = ({
       )}
 
       {/* Main Duel Canvas */}
-      <div className="relative flex-1 flex items-center justify-center overflow-hidden">
+      <div className="relative flex-1 flex items-center justify-center overflow-hidden p-2">
         <canvas
           ref={canvasRef}
           width={900}
           height={480}
-          className="w-full h-full max-w-5xl object-contain bg-slate-950 shadow-2xl"
+          className="w-full h-full max-w-5xl object-contain bg-slate-950 jadval-double-border rounded-2xl shadow-2xl"
         />
 
-        {/* Start Duel Pre-Match Screen */}
+        {/* Start Duel Pre-Match Illuminated Manuscript Screen */}
         {!isDuelActive && !duelResult && (
-          <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-30">
-            <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-3xl mb-3 shadow-xl">
-              ⚔️
-            </div>
-            <h3 className="text-xl md:text-2xl font-black text-amber-300">
-              {playerHero.id === 'gordafarid' && selectedOpponent.id === 'sohrab'
-                ? 'رزم تاریخی گردآفرید شیرزن و سهراب یل در دژ سپید'
-                : playerHero.id === 'rostam' && selectedOpponent.id === 'sohrab'
-                ? 'رزم تراژیک و سرنوشت‌ساز رستم تهمتن و سهراب یل'
-                : playerHero.id === 'rostam' && selectedOpponent.id === 'div_sepid'
-                ? 'خوان هفتم رستم: نبرد مرگبار در غار دیو سپید مازندران'
-                : playerHero.id === 'rostam' && selectedOpponent.id === 'esfandiar'
-                ? 'رزم دو جهان‌پهلوان: رستم دستان و اسفندیار رویین‌تن'
-                : `رویارویی تن‌به‌تن: ${playerHero.id === 'rostam' ? 'رستم دستان' : playerHero.id === 'sohrab' ? 'سهراب یل' : 'گردآفرید شیرزن'} در برابر ${selectedOpponent.name}`}
-            </h3>
-            <p className="text-xs text-slate-300 max-w-lg mt-2 leading-relaxed whitespace-pre-line italic">
-              {playerHero.id === 'gordafarid' && selectedOpponent.id === 'sohrab'
-                ? '«چو رخسار بنمود گردآفرید / شگفت آمدش زان زن پاک‌دید\nبدو گفت کای نازنینِ دلیر / مرو تیز بر کامِ بُرّانْ‌شیر»'
-                : playerHero.id === 'rostam' && selectedOpponent.id === 'sohrab'
-                ? '«یکی داستان است پر آبِ چشم / دل نازک از رستم آید به خشم\nبرآویخت با پور خود پهلوان / ندانست فرزند را در جهان»'
-                : playerHero.id === 'rostam' && selectedOpponent.id === 'div_sepid'
-                ? '«بیامد به غار اندرون پیلتن / بدید آن سیه‌دیوِ تاریک‌تن\nچو پیل ژیان رستم نامدار / بیامد به جنگ سپیددیو خوار»'
-                : playerHero.id === 'rostam' && selectedOpponent.id === 'esfandiar'
-                ? '«که گوید برو دست رستم ببند / نبندد مرا دست چرخ بلند\nدو جنگی چو شیران برآویختند / همی خون ز اندام‌ها ریختند»'
-                : '«به گود اندر آ و هنر برنمای / که جز نیزه و تیغ ناید به کار»'}
-            </p>
-            <p className="text-[11px] text-amber-400/90 mt-2 font-medium">
-              هنگام برخورد همزمان سلاح‌ها، تیغه‌ها قفل شده و با تپ سریع حریف را به عقب بران!
-            </p>
-
-            <button
-              onClick={handleStartDuel}
-              className="mt-6 py-3.5 px-8 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-base rounded-2xl shadow-xl transition-transform active:scale-95 cursor-pointer flex items-center gap-2.5 animate-gold-pulse"
+          <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 z-30">
+            <ManuscriptFrame
+              variant="lapis"
+              showSarloh={true}
+              sarlohTitle={t.duel_arena_title}
+              sarlohSubtitle={`${resolvedPlayerName} ⚔️ ${opponentName}`}
+              className="max-w-xl w-full text-center"
+              contentClassName="p-6 flex flex-col items-center gap-4"
             >
-              <Play className="w-5 h-5 fill-slate-950" />
-              <span>ورود به میدان مبارزه</span>
-            </button>
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-2xl shadow-xl">
+                ⚔️
+              </div>
+
+              <div>
+                <h3 className="text-lg md:text-xl font-black text-amber-200 nastaliq-title">
+                  {resolvedPlayerName} ⚔️ {opponentName}
+                </h3>
+                <p className="text-xs text-amber-300/80 mt-1 font-semibold">
+                  {resolvedPlayerTitle} • {opponentTitle}
+                </p>
+              </div>
+
+              <p className="text-xs text-slate-300 max-w-md leading-relaxed">
+                {t.duel_blade_clash_instruction}
+              </p>
+
+              <button
+                onClick={handleStartDuel}
+                className="mt-2 py-3.5 px-8 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-sm md:text-base rounded-2xl shadow-xl transition-transform active:scale-95 cursor-pointer flex items-center gap-2.5 border border-amber-200 animate-gold-pulse"
+              >
+                <Play className="w-5 h-5 fill-slate-950" />
+                <span>{t.duel_start_btn} {opponentName}</span>
+              </button>
+            </ManuscriptFrame>
           </div>
         )}
 
-        {/* Blade Clash Active QTE Overlay (قفل شدن تیغه‌ها) */}
+        {/* Blade Clash Active QTE Overlay */}
         {clashState.active && (
-          <div className="absolute inset-0 bg-amber-950/40 backdrop-blur-xs flex flex-col items-center justify-center p-4 z-40 animate-pulse pointer-events-auto">
-            <div className="bg-slate-950/95 border-2 border-yellow-400 p-5 rounded-2xl max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-3">
+          <div className="absolute inset-0 bg-amber-950/45 backdrop-blur-xs flex flex-col items-center justify-center p-4 z-40 pointer-events-auto">
+            <ManuscriptFrame
+              variant="crimson"
+              showSarloh={true}
+              sarlohTitle={t.duel_arena_subtitle}
+              className="max-w-sm w-full text-center"
+              contentClassName="p-5 flex flex-col items-center gap-3"
+            >
               <div className="text-3xl animate-bounce">⚡ ⚔️ ⚡</div>
-              <h4 className="text-base font-black text-yellow-300">
-                قفل شدن حماسی تیغه‌ها! (Blade Clash)
-              </h4>
-              <p className="text-xs text-slate-300">
-                سریعاً دکمه زیر یا کلید Space / J را پیاپی بزنید!
+              <p className="text-xs text-amber-100 font-bold">
+                {t.duel_blade_clash_instruction}
               </p>
 
               {/* Tension gauge */}
-              <div className="w-full h-5 bg-slate-900 border border-amber-500/60 rounded-lg overflow-hidden p-1 shadow-inner relative">
+              <div className="w-full h-5 bg-slate-950 border border-amber-400 rounded-lg overflow-hidden p-1 shadow-inner relative">
                 <div
                   className="h-full bg-gradient-to-r from-yellow-500 via-amber-400 to-emerald-400 rounded transition-all duration-75"
                   style={{ width: `${clashState.playerProgress}%` }}
@@ -476,79 +540,77 @@ export const DuelArena: React.FC<Props> = ({
               {/* Big Tap Button */}
               <button
                 onClick={() => engineRef.current?.onClashTap()}
-                className="w-full py-4 bg-gradient-to-r from-red-600 via-amber-500 to-yellow-400 text-slate-950 font-black text-lg rounded-xl shadow-2xl active:scale-95 cursor-pointer transition-transform"
+                className="w-full py-3.5 bg-gradient-to-r from-red-600 via-amber-500 to-yellow-400 text-slate-950 font-black text-sm md:text-base rounded-xl shadow-2xl active:scale-95 cursor-pointer transition-transform border border-yellow-200"
               >
-                💥 فشار تیغه! (تپ سریع) 💥
+                💥 {t.duel_clash_mash_btn} 💥
               </button>
-            </div>
+            </ManuscriptFrame>
           </div>
         )}
 
         {/* Duel Result Modal (Victory or Defeat) */}
         {duelResult && (
-          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-50 animate-fadeIn">
-            <div
-              className={`w-20 h-20 rounded-full flex items-center justify-center text-4xl shadow-2xl mb-3 ${
-                duelResult === 'victory'
-                  ? 'bg-gradient-to-tr from-amber-500 to-yellow-300 border-2 border-yellow-200'
-                  : 'bg-gradient-to-tr from-red-700 to-rose-900 border-2 border-rose-500'
-              }`}
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-6 text-center z-50">
+            <ManuscriptFrame
+              variant={duelResult === 'victory' ? 'lapis' : 'crimson'}
+              showSarloh={true}
+              sarlohTitle={duelResult === 'victory' ? t.victory : t.defeat}
+              sarlohSubtitle={`${resolvedPlayerName} ⚔️ ${opponentName}`}
+              className="max-w-md w-full text-center"
+              contentClassName="p-6 flex flex-col items-center gap-4"
             >
-              {duelResult === 'victory' ? '🏆' : '💀'}
-            </div>
-
-            <h3 className="text-2xl font-black text-slate-100">
-              {duelResult === 'victory' ? 'پیروزی درخشان پهلوانی!' : 'شکست در نبرد تن‌به‌تن'}
-            </h3>
-
-            <p className="text-xs text-slate-300 mt-2 max-w-sm">
-              {duelResult === 'victory'
-                ? `با دلاوری و قدرت تمام، ${selectedOpponent.name} را در گود نبرد به زانو درآوردی!`
-                : `${selectedOpponent.name} با حیله و نیروی برتر بر شما چیره شد. دگر بار بخت خویش بیازمای!`}
-            </p>
-
-            {duelResult === 'victory' && (
-              <div className="my-4 px-4 py-2 bg-slate-900 border border-amber-500/50 rounded-xl flex items-center gap-4 text-xs font-bold text-amber-300 font-mono">
-                <span>+۳۰۰ سکه طلا 🪙</span>
-                <span>+۱۵ گوهر کیانی 💎</span>
+              <div
+                className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-2xl ${
+                  duelResult === 'victory'
+                    ? 'bg-gradient-to-tr from-amber-500 to-yellow-300 border-2 border-yellow-200'
+                    : 'bg-gradient-to-tr from-red-700 to-rose-900 border-2 border-rose-500'
+                }`}
+              >
+                {duelResult === 'victory' ? '🏆' : '💀'}
               </div>
-            )}
 
-            <div className="flex items-center gap-3 mt-4">
-              <button
-                onClick={handleStartDuel}
-                className="py-2.5 px-6 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition-transform active:scale-95 cursor-pointer flex items-center gap-2"
-              >
-                <RotateCcw className="w-4 h-4" />
-                <span>نبرد مجدد</span>
-              </button>
+              <h3 className="text-xl font-black text-amber-200 nastaliq-title">
+                {duelResult === 'victory' ? t.victory : t.defeat}
+              </h3>
 
-              <button
-                onClick={onExit}
-                className="py-2.5 px-6 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer"
-              >
-                بازگشت به اردوگاه
-              </button>
-            </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {duelResult === 'victory' ? t.duel_victory_msg : t.duel_defeat_msg}
+              </p>
+
+              <div className="flex items-center gap-3 mt-2 w-full justify-center">
+                <button
+                  onClick={handleStartDuel}
+                  className="py-2.5 px-5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition-transform active:scale-95 cursor-pointer flex items-center gap-2 border border-amber-200"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>{t.duel_rematch_btn}</span>
+                </button>
+
+                <button
+                  onClick={onExit}
+                  className="py-2.5 px-5 bg-slate-900 hover:bg-slate-800 text-amber-200 font-bold text-xs rounded-xl border border-amber-500/40 transition-colors cursor-pointer"
+                >
+                  {t.return_to_menu}
+                </button>
+              </div>
+            </ManuscriptFrame>
           </div>
         )}
       </div>
 
-      {/* Duel Bottom Controls (Keyboard guide & Mobile On-screen buttons) */}
-      <footer className="safe-bottom safe-px p-3 bg-slate-900/95 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 z-20">
-        <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono hidden md:flex">
-          <span className="text-amber-400 font-bold">{isRtl ? 'راهنمای کلیدها:' : 'Controls:'}</span>
-          <span>A/D {isRtl ? 'حرکت' : 'Move'}</span>
+      {/* Duel Bottom Controls */}
+      <footer className="safe-bottom safe-px p-3 bg-[#050a18]/95 border-t-2 border-amber-500/40 flex flex-wrap items-center justify-between gap-2 z-20">
+        <div className="flex items-center gap-2 text-[11px] text-amber-200/80 font-mono hidden md:flex">
+          <span className="text-amber-400 font-bold">{t.duel_controls_guide}</span>
+          <span>A/D: {t.duel_ctrl_move}</span>
           <span>·</span>
-          <span>Space {isRtl ? 'پرش' : 'Jump'}</span>
+          <span>J: {t.duel_ctrl_light}</span>
           <span>·</span>
-          <span>J {isRtl ? 'ضربه سبک' : 'Light Attack'}</span>
+          <span>K: {t.duel_ctrl_heavy}</span>
           <span>·</span>
-          <span>K {isRtl ? 'ضربه سنگین' : 'Heavy Attack'}</span>
+          <span>L/Shift: {t.duel_ctrl_parry}</span>
           <span>·</span>
-          <span>L {isRtl ? 'دفاع' : 'Parry'}</span>
-          <span>·</span>
-          <span>U {isRtl ? 'فرّه ایزدی' : 'Farreh'}</span>
+          <span>U: {t.duel_ctrl_special}</span>
         </div>
 
         {/* Mobile On-screen Combat Buttons */}
@@ -565,7 +627,7 @@ export const DuelArena: React.FC<Props> = ({
             }}
             onMouseDown={() => engineRef.current?.playerMove(-1)}
             onMouseUp={() => engineRef.current?.playerMove(0)}
-            className="w-12 h-11 bg-slate-800 active:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 font-bold text-sm flex items-center justify-center cursor-pointer shadow-md active:scale-95 transition-transform"
+            className="w-11 h-10 bg-slate-900 active:bg-slate-800 border border-amber-500/40 rounded-xl text-amber-200 font-bold text-sm flex items-center justify-center cursor-pointer shadow-md active:scale-95 transition-transform"
             aria-label="Move Left"
           >
             ◀
@@ -583,7 +645,7 @@ export const DuelArena: React.FC<Props> = ({
             }}
             onMouseDown={() => engineRef.current?.playerMove(1)}
             onMouseUp={() => engineRef.current?.playerMove(0)}
-            className="w-12 h-11 bg-slate-800 active:bg-slate-700 border border-slate-700 rounded-xl text-slate-200 font-bold text-sm flex items-center justify-center cursor-pointer shadow-md active:scale-95 transition-transform"
+            className="w-11 h-10 bg-slate-900 active:bg-slate-800 border border-amber-500/40 rounded-xl text-amber-200 font-bold text-sm flex items-center justify-center cursor-pointer shadow-md active:scale-95 transition-transform"
             aria-label="Move Right"
           >
             ▶
@@ -594,9 +656,9 @@ export const DuelArena: React.FC<Props> = ({
               navigator?.vibrate?.(10);
               engineRef.current?.playerJump();
             }}
-            className="px-3 h-11 bg-slate-800 active:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 cursor-pointer shadow-md active:scale-95 transition-transform"
+            className="px-3 h-10 bg-slate-900 active:bg-slate-800 border border-amber-500/40 rounded-xl text-xs font-bold text-amber-200 cursor-pointer shadow-md active:scale-95 transition-transform"
           >
-            {isRtl ? 'پرش' : 'Jump'}
+            {t.btn_jump_short}
           </button>
 
           <button
@@ -604,10 +666,10 @@ export const DuelArena: React.FC<Props> = ({
               navigator?.vibrate?.(12);
               engineRef.current?.playerAttack('light');
             }}
-            className="px-3.5 h-11 bg-amber-500/20 active:bg-amber-500/40 border border-amber-500/80 rounded-xl text-xs font-black text-amber-300 flex items-center gap-1 cursor-pointer shadow-md active:scale-95 transition-transform"
+            className="px-3 h-10 bg-amber-500/20 active:bg-amber-500/40 border border-amber-400 rounded-xl text-xs font-black text-amber-300 flex items-center gap-1 cursor-pointer shadow-md active:scale-95 transition-transform"
           >
             <Sword className="w-3.5 h-3.5" />
-            <span>{isRtl ? 'سبک' : 'Light'}</span>
+            <span>{t.btn_attack_short}</span>
           </button>
 
           <button
@@ -615,10 +677,10 @@ export const DuelArena: React.FC<Props> = ({
               navigator?.vibrate?.(15);
               engineRef.current?.playerAttack('heavy');
             }}
-            className="px-3.5 h-11 bg-amber-600 active:bg-amber-500 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer shadow-md active:scale-95 transition-transform"
+            className="px-3 h-10 bg-amber-500 active:bg-amber-400 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer shadow-md active:scale-95 transition-transform"
           >
             <Zap className="w-3.5 h-3.5" />
-            <span>{isRtl ? 'سنگین' : 'Heavy'}</span>
+            <span>+</span>
           </button>
 
           <button
@@ -633,10 +695,10 @@ export const DuelArena: React.FC<Props> = ({
             }}
             onMouseDown={() => engineRef.current?.playerParry(true)}
             onMouseUp={() => engineRef.current?.playerParry(false)}
-            className="px-3.5 h-11 bg-sky-600/30 active:bg-sky-600/60 border border-sky-500 rounded-xl text-xs font-bold text-sky-300 flex items-center gap-1 cursor-pointer shadow-md active:scale-95 transition-transform"
+            className="px-3 h-10 bg-sky-600/30 active:bg-sky-600/60 border border-sky-400 rounded-xl text-xs font-bold text-sky-300 flex items-center gap-1 cursor-pointer shadow-md active:scale-95 transition-transform"
           >
             <Shield className="w-3.5 h-3.5" />
-            <span>{isRtl ? 'دفاع' : 'Parry'}</span>
+            <span>{t.btn_parry_short}</span>
           </button>
 
           <button
@@ -644,13 +706,14 @@ export const DuelArena: React.FC<Props> = ({
               navigator?.vibrate?.(25);
               engineRef.current?.playerSpecial();
             }}
-            className="px-3 h-11 bg-gradient-to-r from-red-600 to-amber-600 active:scale-95 text-white rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer shadow-md transition-transform"
+            className="px-3 h-10 bg-gradient-to-r from-red-600 to-amber-600 active:scale-95 text-white rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer shadow-md transition-transform"
           >
             <Flame className="w-3.5 h-3.5" />
-            <span>{isRtl ? 'فرّه' : 'Farreh'}</span>
+            <span>{t.btn_farreh_short}</span>
           </button>
         </div>
       </footer>
     </div>
   );
 };
+

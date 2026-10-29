@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Language } from '../types/game';
-import { CURRENT_RELEASE_INFO, PlatformReleaseAsset } from '../constants/releaseInfo';
+import { CURRENT_RELEASE_INFO, PlatformReleaseAsset, ReleaseMetadata } from '../constants/releaseInfo';
 import {
   X,
   Github,
@@ -28,6 +28,26 @@ interface Props {
 export const GitHubReleasesModal: React.FC<Props> = ({ lang, onClose }) => {
   const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'executables' | 'changelog' | 'automation'>('executables');
+  const [liveRelease, setLiveRelease] = useState<ReleaseMetadata>(CURRENT_RELEASE_INFO);
+
+  useEffect(() => {
+    fetch('/releases/release-manifest.json')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (data && Array.isArray(data.assets) && data.version) {
+          setLiveRelease(prev => ({
+            ...prev,
+            version: data.version,
+            tag: data.tag || `v${data.version}`,
+            releasedAt: data.releasedAt || prev.releasedAt,
+            assets: data.assets,
+          }));
+        }
+      })
+      .catch(() => {
+        // Fallback to static CURRENT_RELEASE_INFO
+      });
+  }, []);
 
   const copyCommand = (cmd: string, key: string) => {
     navigator.clipboard.writeText(cmd);
@@ -37,7 +57,7 @@ export const GitHubReleasesModal: React.FC<Props> = ({ lang, onClose }) => {
   };
 
   const isFa = lang === 'fa' || lang === 'ar';
-  const rel = CURRENT_RELEASE_INFO;
+  const rel = liveRelease;
 
   const getPlatformIcon = (id: PlatformReleaseAsset['id']) => {
     switch (id) {

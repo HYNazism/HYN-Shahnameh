@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { GameEngine } from '../game/GameEngine';
 import { TouchControlSettings, Language } from '../types/game';
+import { TRANSLATIONS } from '../constants/translations';
 import { loadTouchSettings, saveTouchSettings, DEFAULT_TOUCH_SETTINGS } from '../utils/storage';
 import { TouchSettingsModal } from './TouchSettingsModal';
 import { Sliders, Shield, Zap, Sword } from 'lucide-react';
@@ -18,6 +19,7 @@ export const MobileControls: React.FC<Props> = ({
   heroId,
   lang = 'fa',
 }) => {
+  const t = TRANSLATIONS[lang];
   const [settings, setSettings] = useState<TouchControlSettings>(() => loadTouchSettings());
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -185,8 +187,8 @@ export const MobileControls: React.FC<Props> = ({
         <button
           onClick={() => setIsSettingsOpen(true)}
           className="w-8 h-8 rounded-xl bg-slate-950/80 hover:bg-slate-900 border border-amber-500/40 text-amber-300 flex items-center justify-center shadow-lg active:scale-95 transition-transform backdrop-blur-md cursor-pointer"
-          title="تنظیمات دسته لمسی"
-          aria-label="تنظیمات کنترل لمسی"
+          title="Touch Settings"
+          aria-label="Touch Settings"
         >
           <Sliders className="w-4 h-4 text-amber-400" />
         </button>
@@ -264,7 +266,7 @@ export const MobileControls: React.FC<Props> = ({
                   onMouseDown={handleActionDown('left')}
                   onMouseUp={handleActionUp('left')}
                   className="w-16 h-16 bg-slate-950/90 border-2 border-amber-500/60 rounded-2xl flex items-center justify-center text-amber-300 font-black text-2xl active:bg-amber-600 active:text-slate-950 active:scale-90 transition-transform shadow-2xl backdrop-blur-md cursor-pointer"
-                  aria-label="حرکت به چپ"
+                  aria-label="Move Left"
                 >
                   ◀
                 </button>
@@ -274,7 +276,7 @@ export const MobileControls: React.FC<Props> = ({
                   onMouseDown={handleActionDown('right')}
                   onMouseUp={handleActionUp('right')}
                   className="w-16 h-16 bg-slate-950/90 border-2 border-amber-500/60 rounded-2xl flex items-center justify-center text-amber-300 font-black text-2xl active:bg-amber-600 active:text-slate-950 active:scale-90 transition-transform shadow-2xl backdrop-blur-md cursor-pointer"
-                  aria-label="حرکت به راست"
+                  aria-label="Move Right"
                 >
                   ▶
                 </button>
@@ -292,10 +294,10 @@ export const MobileControls: React.FC<Props> = ({
                 onMouseDown={handleActionDown('special')}
                 onMouseUp={handleActionUp('special')}
                 className="w-13 h-13 bg-gradient-to-br from-amber-600 to-amber-900 border-2 border-amber-400/90 rounded-2xl flex flex-col items-center justify-center text-amber-100 font-bold active:scale-90 shadow-xl cursor-pointer transition-transform"
-                aria-label="مهارت ویژه فرّه"
+                aria-label={specialSkillName}
               >
                 <Zap className="w-4 h-4 text-yellow-300" />
-                <span className="text-[10px] font-black leading-tight truncate max-w-[44px]">فرّه</span>
+                <span className="text-[10px] font-black leading-tight truncate max-w-[44px]">{t.btn_farreh}</span>
               </button>
 
               {/* Parry / Deflect Button */}
@@ -305,10 +307,10 @@ export const MobileControls: React.FC<Props> = ({
                 onMouseDown={handleActionDown('parry')}
                 onMouseUp={handleActionUp('parry')}
                 className="w-13 h-13 bg-indigo-950/90 border-2 border-indigo-400/80 rounded-2xl flex flex-col items-center justify-center text-indigo-200 font-bold active:bg-indigo-600 active:text-white transition-transform active:scale-90 shadow-xl backdrop-blur-md cursor-pointer"
-                aria-label="دفع تیغ و پری"
+                aria-label={t.btn_parry}
               >
                 <Shield className="w-4 h-4 text-indigo-300" />
-                <span className="text-[10px] font-black leading-tight">پری</span>
+                <span className="text-[10px] font-black leading-tight">{t.btn_parry}</span>
               </button>
             </div>
 
@@ -320,11 +322,11 @@ export const MobileControls: React.FC<Props> = ({
                 onMouseDown={handleActionDown('quickAttack')}
                 onMouseUp={handleActionUp('quickAttack')}
                 className="w-14 h-14 bg-sky-950/90 border-2 border-sky-400/80 rounded-2xl flex flex-col items-center justify-center text-sky-200 font-bold active:bg-sky-500 active:text-slate-950 transition-transform active:scale-90 shadow-xl backdrop-blur-md cursor-pointer"
-                aria-label="ضربه سریع یا تیر"
+                aria-label={heroId === 'gordafarid' ? t.btn_arrow : t.btn_dash}
               >
                 <span className="text-lg">{heroId === 'gordafarid' ? '🏹' : '⚡'}</span>
                 <span className="text-[10px] font-bold leading-tight">
-                  {heroId === 'gordafarid' ? 'تیر' : 'دش'}
+                  {heroId === 'gordafarid' ? t.btn_arrow : t.btn_dash}
                 </span>
               </button>
 
@@ -335,10 +337,10 @@ export const MobileControls: React.FC<Props> = ({
                 onMouseDown={handleActionDown('jump')}
                 onMouseUp={handleActionUp('jump')}
                 className="w-14 h-14 bg-emerald-950/90 border-2 border-emerald-400/80 rounded-2xl flex flex-col items-center justify-center text-emerald-200 font-bold active:bg-emerald-500 active:text-slate-950 transition-transform active:scale-90 shadow-xl backdrop-blur-md cursor-pointer"
-                aria-label="پرش"
+                aria-label={t.btn_jump}
               >
                 <span className="text-xl font-black">▲</span>
-                <span className="text-[10px] font-bold leading-tight">پرش</span>
+                <span className="text-[10px] font-bold leading-tight">{t.btn_jump}</span>
               </button>
             </div>
 
@@ -350,10 +352,10 @@ export const MobileControls: React.FC<Props> = ({
                 onMouseDown={handleActionDown('attack')}
                 onMouseUp={handleActionUp('attack')}
                 className="w-18 h-18 bg-gradient-to-br from-rose-700 via-rose-800 to-rose-950 border-2 border-rose-400/90 rounded-3xl flex flex-col items-center justify-center text-rose-100 font-black active:bg-rose-600 active:scale-90 transition-transform shadow-2xl backdrop-blur-md cursor-pointer"
-                aria-label="حمله اصلی"
+                aria-label={t.btn_attack}
               >
                 <Sword className="w-6 h-6 text-rose-200 stroke-[2.5]" />
-                <span className="text-xs font-black mt-0.5">حمله</span>
+                <span className="text-xs font-black mt-0.5">{t.btn_attack}</span>
               </button>
             </div>
           </div>

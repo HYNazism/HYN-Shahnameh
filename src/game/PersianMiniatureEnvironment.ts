@@ -89,10 +89,81 @@ export class PersianMiniatureEnvironment {
         break;
     }
 
-    // Atmospheric miniature manuscript border illumination (تذهیب حاشیه‌ای در High/Ultra)
-    if (isHigh || isUltra) {
-      this.renderMiniatureIlluminatedTrim(ctx, w, h);
+    // Tahmasbi Coral Crags & Zar-Afshan Gold Sky Flecks
+    this.renderZarAfshanSkyFlecks(ctx, w, h, cameraX, time);
+    this.renderTahmasbiCoralCrags(ctx, w, h, cameraX, stageId);
+
+    // Atmospheric miniature manuscript border illumination (جدول‌کشی و لچک تذهیب حاشیه‌ای)
+    this.renderMiniatureIlluminatedTrim(ctx, w, h);
+  }
+
+  /**
+   * Zar-Afshan (افشان ورق طلای ۲۴ عیار و غبار نبرد در آسمان نگارگری)
+   */
+  private renderZarAfshanSkyFlecks(
+    ctx: CanvasRenderingContext2D,
+    w: number,
+    h: number,
+    camX: number,
+    time: number
+  ) {
+    ctx.save();
+    for (let i = 0; i < this.starSeeds.length; i += 2) {
+      const s = this.starSeeds[i];
+      const fx = (((s.x - camX * 0.08 + Math.sin(time * 0.7 + i) * 10) % w) + w) % w;
+      const fy = (s.y * 1.35) % (h * 0.68);
+      ctx.fillStyle = i % 3 === 0 ? 'rgba(253, 224, 71, 0.42)' : 'rgba(217, 119, 6, 0.28)';
+      ctx.fillRect(fx, fy, s.size * 1.15, s.size * 1.15);
     }
+    ctx.restore();
+  }
+
+  /**
+   * Shahnameh of Shah Tahmasp Swirling Coral Crags (صخره‌های مرجانی پیچان مکتب تبریز با رگه‌های لاجورد و طلا)
+   */
+  private renderTahmasbiCoralCrags(
+    ctx: CanvasRenderingContext2D,
+    w: number,
+    h: number,
+    camX: number,
+    stageId: number
+  ) {
+    ctx.save();
+    const cragOffset = -camX * 0.16;
+    const palette =
+      stageId === 2
+        ? { base: '#082f49', vein: '#38bdf8', gold: '#fbbf24' }
+        : stageId === 3 || stageId === 6
+        ? { base: '#3b0764', vein: '#f43f5e', gold: '#f59e0b' }
+        : stageId === 4
+        ? { base: '#31102f', vein: '#c084fc', gold: '#fde047' }
+        : { base: '#1e1b4b', vein: '#818cf8', gold: '#d4af37' };
+
+    for (let i = 0; i < 6; i++) {
+      const cx = (((i * 260 + cragOffset) % (w + 320)) + (w + 320)) % (w + 320) - 60;
+      const cy = 382 + Math.sin(i * 2.1) * 16;
+
+      ctx.fillStyle = palette.base;
+      ctx.strokeStyle = palette.gold;
+      ctx.lineWidth = 1.5;
+
+      ctx.beginPath();
+      ctx.moveTo(cx - 38, cy + 45);
+      ctx.bezierCurveTo(cx - 42, cy + 5, cx - 18, cy - 28, cx - 4, cy - 16);
+      ctx.bezierCurveTo(cx + 6, cy - 38, cx + 32, cy - 22, cx + 26, cy + 4);
+      ctx.bezierCurveTo(cx + 44, cy + 12, cx + 40, cy + 36, cx + 36, cy + 45);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Inner mineral pigment spiral whorl (گره سنگی طهماسبی)
+      ctx.strokeStyle = palette.vein;
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.arc(cx + 6, cy - 8, 8, 0, Math.PI * 1.45);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   // =========================================================================
@@ -1031,19 +1102,26 @@ export class PersianMiniatureEnvironment {
   }
 
   /**
-   * Illuminated Manuscript Border Frame (تذهیب طلایی گوشه‌های کادر نبرد)
+   * Illuminated Manuscript Jadval & Lachak Border Frame (جدول‌کشی زرین و لچک‌های چهارگوشه نسخه خطی شاهنامه)
    */
   private renderMiniatureIlluminatedTrim(ctx: CanvasRenderingContext2D, w: number, h: number) {
     ctx.save();
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
-    ctx.lineWidth = 2;
 
-    // Corner Islimi knots (گره اسلیمی در ۴ گوشه کادر)
+    // Outer & Inner Gold Jadval Ruling Lines (جدول‌کشی دولایه زرین و لاجوردی)
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.65)';
+    ctx.lineWidth = 2.2;
+    ctx.strokeRect(8, 8, w - 16, h - 16);
+
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+    ctx.lineWidth = 1.0;
+    ctx.strokeRect(12, 12, w - 24, h - 24);
+
+    // Corner Lachak Medallions (لچک‌های تذهیب در ۴ گوشه کادر نبرد)
     const corners = [
-      { x: 14, y: 14, sx: 1, sy: 1 },
-      { x: w - 14, y: 14, sx: -1, sy: 1 },
-      { x: 14, y: h - 14, sx: 1, sy: -1 },
-      { x: w - 14, y: h - 14, sx: -1, sy: -1 },
+      { x: 10, y: 10, sx: 1, sy: 1 },
+      { x: w - 10, y: 10, sx: -1, sy: 1 },
+      { x: 10, y: h - 10, sx: 1, sy: -1 },
+      { x: w - 10, y: h - 10, sx: -1, sy: -1 },
     ];
 
     corners.forEach((c) => {
@@ -1051,15 +1129,20 @@ export class PersianMiniatureEnvironment {
       ctx.translate(c.x, c.y);
       ctx.scale(c.sx, c.sy);
 
+      ctx.fillStyle = 'rgba(9, 19, 44, 0.85)';
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.moveTo(0, 24);
-      ctx.lineTo(0, 0);
-      ctx.lineTo(24, 0);
+      ctx.moveTo(0, 0);
+      ctx.lineTo(38, 0);
+      ctx.quadraticCurveTo(18, 12, 0, 38);
+      ctx.closePath();
+      ctx.fill();
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.arc(10, 10, 6, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(251, 191, 36, 0.5)';
+      ctx.arc(11, 11, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#dc2626';
       ctx.fill();
       ctx.stroke();
 

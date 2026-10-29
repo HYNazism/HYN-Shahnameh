@@ -2,6 +2,8 @@ export type Language = 'fa' | 'en' | 'ar' | 'fr';
 
 export type HeroId = 'rostam' | 'sohrab' | 'gordafarid';
 
+export type PlayerAlignment = 'good' | 'evil';
+
 export type GraphicsTier = 'low' | 'medium' | 'high' | 'ultra';
 
 export interface HeroDef {
@@ -20,6 +22,11 @@ export interface HeroDef {
   color: string;
   accentColor: string;
   capeColor: string;
+  customDisplayName?: string;
+  customTitle?: string;
+  customDesc?: string;
+  customWeaponName?: string;
+  customSpecialName?: string;
 }
 
 export interface WeaponDef {
@@ -65,6 +72,7 @@ export interface StageDef {
   bgGradient: [string, string];
   platformColor: string;
   chapterEra: string;
+  chapterEraKey?: string;
   allowHeroDuelSelect?: boolean;
   dialogueProseKey?: string;
 }
@@ -98,6 +106,8 @@ export interface PlayerProgress {
   gems: number;
   unlockedHeroes: HeroId[];
   selectedHero: HeroId;
+  alignment?: PlayerAlignment;
+  hasChosenAlignment?: boolean;
   weaponLevels: Record<string, number>;
   unlockedSkills: Record<string, boolean>;
   completedStages: number[];

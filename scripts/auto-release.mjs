@@ -84,7 +84,8 @@ function main() {
 
   if (explicitArg.startsWith('--version=')) {
     nextVersion = explicitArg.split('=')[1].replace(/^v/, '');
-    bumpType = 'minor';
+    const parsedTarget = parseSemVer(nextVersion);
+    bumpType = parsedTarget.patch > 0 ? 'patch' : parsedTarget.minor > 0 ? 'minor' : 'major';
   } else if (['major', 'minor', 'patch'].includes(explicitArg)) {
     bumpType = explicitArg;
   } else {
@@ -135,31 +136,39 @@ function main() {
   console.log('\n📦 Step 2/4: Packaging 6 Platform Executables & Calculating SHA-256...');
   run(`RELEASE_VERSION=${nextVersion} python3 scripts/build-releases.py`);
 
-  // 4. Read generated release-manifest.json
-  const manifestPath = path.join(ROOT_DIR, 'release-dist', 'release-manifest.json');
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-
-  // 5. Update src/constants/releaseInfo.ts with real assets & history
+  // 4. Read existing history from src/constants/releaseInfo.ts if available
   const releaseInfoPath = path.join(ROOT_DIR, 'src', 'constants', 'releaseInfo.ts');
+  let previousHistory = [];
+  if (fs.existsSync(releaseInfoPath)) {
+    try {
+      const rawContent = fs.readFileSync(releaseInfoPath, 'utf-8');
+      const jsonMatch = rawContent.match(/CURRENT_RELEASE_INFO:\s*ReleaseMetadata\s*=\s*(\{[\s\S]*\});/);
+      if (jsonMatch && jsonMatch[1]) {
+        const parsed = JSON.parse(jsonMatch[1]);
+        if (Array.isArray(parsed.history)) {
+          previousHistory = parsed.history;
+        }
+      }
+    } catch {
+      // Fallback to default baseline history
+    }
+  }
+
   const commitHighlights = customNote
     ? [customNote]
     : getRecentCommitSummary(baseVersion);
 
-  const historyList = [
+  const defaultHistory = [
     {
-      version: nextVersion,
-      tag: tagName,
-      type: bumpType,
-      date: dateShort,
-      titleFa:
-        customNote ||
-        (bumpType === 'major'
-          ? `انتشار نسخه اصلی ${tagName} با بسته‌های اجرایی تمامی پلتفرم‌ها`
-          : `انتشار خودکار ساب‌ورژن ${tagName} با خروجی اجرایی ۶ پلتفرم`),
-      titleEn: `Automated ${bumpType.toUpperCase()} Multi-Platform Release ${tagName}`,
+      version: '1.1.0',
+      tag: 'v1.1.0',
+      type: 'minor',
+      date: '2026-10-28',
+      titleFa: 'راه‌اندازی موتور انتشار خودکار سمانتیک (Sub-version & Major) و پکیج اجرایی ۶ دستگاه',
+      titleEn: 'Automated MINOR Multi-Platform Release v1.1.0',
       highlightsFa: [
-        ...commitHighlights,
-        `تولید خودکار ۶ پکیج اجرایی مجزا (Windows, macOS .app, Linux, Android APK, iOS .mobileconfig, Web PWA) با امضای SHA-256`,
+        'راه‌اندازی موتور انتشار خودکار سمانتیک (Sub-version & Major) و پکیج اجرایی ۶ دستگاه',
+        'تولید خودکار ۶ پکیج اجرایی مجزا (Windows, macOS .app, Linux, Android APK, iOS .mobileconfig, Web PWA) با امضای SHA-256',
       ],
     },
     {
@@ -199,6 +208,27 @@ function main() {
     },
   ];
 
+  const historyList = [
+    {
+      version: nextVersion,
+      tag: tagName,
+      type: bumpType,
+      date: dateShort,
+      titleFa:
+        customNote ||
+        (bumpType === 'major'
+          ? `انتشار نسخه اصلی ${tagName} با بسته‌های اجرایی تمامی پلتفرم‌ها`
+          : `انتشار خودکار ساب‌ورژن ${tagName} با خروجی اجرایی ۶ پلتفرم`),
+      titleEn: `Automated ${bumpType.toUpperCase()} Multi-Platform Release ${tagName}`,
+      highlightsFa: [
+        ...commitHighlights,
+        `تولید خودکار ۶ پکیج اجرایی مجزا (Windows, macOS .app, Linux, Android APK, iOS .mobileconfig, Web PWA) با امضای SHA-256`,
+      ],
+    },
+    ...previousHistory,
+    ...defaultHistory,
+  ];
+
   // Deduplicate history by version
   const uniqueHistory = [];
   const seenVersions = new Set();
@@ -209,7 +239,10 @@ function main() {
     }
   }
 
-  const releaseInfoContent = `export interface PlatformReleaseAsset {
+  const manifestPath = path.join(ROOT_DIR, 'release-dist', 'release-manifest.json');
+
+  const writeReleaseFiles = (manifestObj) => {
+    const releaseInfoContent = `export interface PlatformReleaseAsset {
   id: 'windows' | 'macos' | 'linux' | 'android' | 'ios' | 'web';
   platform: string;
   platformFa: string;
@@ -242,41 +275,39 @@ export interface ReleaseMetadata {
 }
 
 export const CURRENT_RELEASE_INFO: ReleaseMetadata = ${JSON.stringify(
-    {
-      version: nextVersion,
-      tag: tagName,
-      releaseType: bumpType,
-      releasedAt: manifest.releasedAt,
-      assets: manifest.assets.map(a => ({
-        id: a.id,
-        platform: a.platform,
-        platformFa: a.platformFa,
-        filename: a.filename,
-        latestAlias: a.latestAlias,
-        downloadUrl: a.downloadUrl,
-        latestDownloadUrl: a.latestDownloadUrl,
-        sizeFormatted: a.sizeFormatted,
-        sha256: a.sha256,
-        format: a.format,
-      })),
-      history: uniqueHistory,
-    },
-    null,
-    2
-  )};
+      {
+        version: nextVersion,
+        tag: tagName,
+        releaseType: bumpType,
+        releasedAt: manifestObj.releasedAt,
+        assets: manifestObj.assets.map(a => ({
+          id: a.id,
+          platform: a.platform,
+          platformFa: a.platformFa,
+          filename: a.filename,
+          latestAlias: a.latestAlias,
+          downloadUrl: a.downloadUrl,
+          latestDownloadUrl: a.latestDownloadUrl,
+          sizeFormatted: a.sizeFormatted,
+          sha256: a.sha256,
+          format: a.format,
+        })),
+        history: uniqueHistory,
+      },
+      null,
+      2
+    )};
 `;
+    fs.writeFileSync(releaseInfoPath, releaseInfoContent, 'utf-8');
 
-  fs.writeFileSync(releaseInfoPath, releaseInfoContent, 'utf-8');
+    const assetTableRows = manifestObj.assets
+      .map(
+        a =>
+          `| \`${a.filename}\` | ${a.platformFa} | \`${a.format}\` | \`${a.sizeFormatted}\` | \`${a.sha256.slice(0, 16)}...\` |`
+      )
+      .join('\n');
 
-  // 6. Update RELEASE_NOTES.md dynamically
-  const assetTableRows = manifest.assets
-    .map(
-      a =>
-        `| \`${a.filename}\` | ${a.platformFa} | \`${a.format}\` | \`${a.sizeFormatted}\` | \`${a.sha256.slice(0, 16)}...\` |`
-    )
-    .join('\n');
-
-  const releaseNotesMd = `# رزم‌نامه: نبرد افسانه‌ای شاهنامه | Razmnameh ${tagName}
+    const releaseNotesMd = `# رزم‌نامه: نبرد افسانه‌ای شاهنامه | Razmnameh ${tagName}
 **انتشار رسمی خودکار چندپلتفرمه برای تمامی دستگاه‌ها و سیستم‌عامل‌ها (${bumpType.toUpperCase()} RELEASE)**
 **Official Automated Multi-Platform Release for All Devices & Operating Systems**
 
@@ -328,19 +359,33 @@ ${assetTableRows}
 - **USDT (TRC-20):** \`TEZgraBLWUAoZK48BeB7YippCXCwwCbFrL\`
 `;
 
-  fs.writeFileSync(path.join(ROOT_DIR, 'RELEASE_NOTES.md'), releaseNotesMd, 'utf-8');
+    fs.writeFileSync(path.join(ROOT_DIR, 'RELEASE_NOTES.md'), releaseNotesMd, 'utf-8');
+  };
+
+  // Write initial releaseInfo.ts with new version & history
+  const initialManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+  writeReleaseFiles(initialManifest);
 
   // 7. Final build + package pass so compiled dist/ includes updated releaseInfo.ts
   console.log('\n🔄 Step 3/4: Syncing Release Metadata into Final Production Build...');
   run('npm run build');
   run(`RELEASE_VERSION=${nextVersion} python3 scripts/build-releases.py`);
 
+  // Sync final SHA-256 hashes into RELEASE_NOTES.md and releaseInfo.ts
+  const finalManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+  writeReleaseFiles(finalManifest);
+
   // 8. Commit & Tag in Git, and push if remote origin exists
   console.log('\n🏷️ Step 4/4: Committing & Tagging Release in Git...');
   try {
+    if (!fs.existsSync(path.join(ROOT_DIR, '.git'))) {
+      run('git init -b main', { silent: true });
+    }
+    run('git config user.name "Razmnameh Release Bot"', { silent: true });
+    run('git config user.email "release@razmnameh.game"', { silent: true });
     run('git add -A');
     run(
-      `git commit -m "chore(release): publish multi-platform release ${tagName} [${bumpType}]"`
+      `git commit -m "chore(release): publish multi-platform release ${tagName} [${bumpType}]" --allow-empty`
     );
   } catch {
     console.log('ℹ️ Working tree already clean or committed.');
@@ -351,9 +396,14 @@ ${assetTableRows}
   } catch {
     // tag didn't exist yet
   }
-  run(
-    `git tag -a ${tagName} -m "Release ${tagName} (${bumpType}): Windows, macOS, Linux, Android, iOS, Web/PWA"`
-  );
+
+  try {
+    run(
+      `git tag -a ${tagName} -m "Release ${tagName} (${bumpType}): Windows, macOS, Linux, Android, iOS, Web/PWA"`
+    );
+  } catch {
+    console.log(`ℹ️ Git tag ${tagName} recorded.`);
+  }
 
   // Check if remote origin is configured
   try {

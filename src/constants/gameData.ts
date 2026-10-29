@@ -175,6 +175,7 @@ export const STAGES: StageDef[] = [
     bgGradient: ['#1e1b4b', '#0f172a'],
     platformColor: '#334155',
     chapterEra: 'پیشدادیان · فریدون و ایرج',
+    chapterEraKey: 'chapter_era_1',
   },
   {
     id: 2,
@@ -186,6 +187,7 @@ export const STAGES: StageDef[] = [
     bgGradient: ['#450a0a', '#180505'],
     platformColor: '#7f1d1d',
     chapterEra: 'قیام کاوه آهنگر · کوه دماوند',
+    chapterEraKey: 'chapter_era_2',
   },
   {
     id: 3,
@@ -197,6 +199,7 @@ export const STAGES: StageDef[] = [
     bgGradient: ['#0f293d', '#050a14'],
     platformColor: '#1e293b',
     chapterEra: 'هفت‌خوان رستم · مازندران',
+    chapterEraKey: 'chapter_era_3',
   },
   {
     id: 4,
@@ -208,8 +211,9 @@ export const STAGES: StageDef[] = [
     bgGradient: ['#31102f', '#090d16'],
     platformColor: '#475569',
     chapterEra: 'دژ سپید · رزم رستم و سهراب',
+    chapterEraKey: 'chapter_era_4',
     dialogueProseKey: 'dialogue_sohrab_prose',
-    allowHeroDuelSelect: true,
+    allowHeroDuelSelect: false,
   },
   {
     id: 5,
@@ -221,6 +225,7 @@ export const STAGES: StageDef[] = [
     bgGradient: ['#7c2d12', '#1c0a05'],
     platformColor: '#9a3412',
     chapterEra: 'کوه آتش سیاوش · کاخ سیاوش‌گرد',
+    chapterEraKey: 'chapter_era_5',
   },
   {
     id: 6,
@@ -232,6 +237,7 @@ export const STAGES: StageDef[] = [
     bgGradient: ['#1e3a5f', '#0a192f'],
     platformColor: '#334155',
     chapterEra: 'رزم رستم و اسفندیار رویین‌تن',
+    chapterEraKey: 'chapter_era_6',
   },
   {
     id: 7,
@@ -243,6 +249,7 @@ export const STAGES: StageDef[] = [
     bgGradient: ['#3b184f', '#0e0517'],
     platformColor: '#581c87',
     chapterEra: 'فرجام پهلوانان · جاودانگی شاهنامه',
+    chapterEraKey: 'chapter_era_7',
   },
 ];
 
@@ -331,6 +338,8 @@ export const DEFAULT_PROGRESS: PlayerProgress = {
   gems: 20,
   unlockedHeroes: ['rostam', 'sohrab', 'gordafarid'],
   selectedHero: 'rostam',
+  alignment: 'good',
+  hasChosenAlignment: false,
   weaponLevels: {
     weapon_mace: 1,
     weapon_scimitar: 1,

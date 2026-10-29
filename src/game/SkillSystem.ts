@@ -232,27 +232,70 @@ export const SKILL_NODES: SkillNode[] = [
 ];
 
 export class SkillSystem {
-  public static canUnlock(nodeId: string, progress: PlayerProgress): { can: boolean; reason?: string } {
+  public static canUnlock(
+    nodeId: string,
+    progress: PlayerProgress,
+    lang: 'fa' | 'en' | 'ar' | 'fr' = 'fa'
+  ): { can: boolean; reason?: string } {
     const node = SKILL_NODES.find(n => n.id === nodeId);
-    if (!node) return { can: false, reason: 'مهارت یافت نشد' };
+    if (!node) {
+      return {
+        can: false,
+        reason: lang === 'fa' ? 'مهارت یافت نشد' : lang === 'ar' ? 'المهارة غير موجودة' : lang === 'fr' ? 'Talent introuvable' : 'Skill node not found',
+      };
+    }
 
     const unlocked = progress.unlockedSkillNodes || {};
     if (unlocked[nodeId]) {
-      return { can: false, reason: 'قبلاً فعال شده است' };
+      return {
+        can: false,
+        reason: lang === 'fa' ? 'قبلاً فعال شده است' : lang === 'ar' ? 'تم تفعيله مسبقاً' : lang === 'fr' ? 'Déjà débloqué' : 'Already unlocked',
+      };
     }
 
     if (node.prerequisiteId && !unlocked[node.prerequisiteId]) {
       const prereq = SKILL_NODES.find(n => n.id === node.prerequisiteId);
-      return { can: false, reason: `نیازمند مهارت پیش‌نیاز: ${prereq?.nameFa || ''}` };
+      const prereqName = (lang === 'fa' || lang === 'ar') ? prereq?.nameFa : prereq?.nameEn;
+      return {
+        can: false,
+        reason:
+          lang === 'fa'
+            ? `نیازمند مهارت پیش‌نیاز: ${prereqName || ''}`
+            : lang === 'ar'
+            ? `يتطلب المهارة السابقة: ${prereqName || ''}`
+            : lang === 'fr'
+            ? `Prérequis requis : ${prereqName || ''}`
+            : `Requires prerequisite: ${prereqName || ''}`,
+      };
     }
 
     const currentPoints = progress.skillPoints || 0;
     if (currentPoints < node.costSkillPoints) {
-      return { can: false, reason: `نیاز به ${node.costSkillPoints} امتیاز مهارت دارید` };
+      return {
+        can: false,
+        reason:
+          lang === 'fa'
+            ? `نیاز به ${node.costSkillPoints} امتیاز مهارت دارید`
+            : lang === 'ar'
+            ? `تحتاج إلى ${node.costSkillPoints} نقاط مهارة`
+            : lang === 'fr'
+            ? `Nécessite ${node.costSkillPoints} points de talent`
+            : `Requires ${node.costSkillPoints} Skill Points`,
+      };
     }
 
     if (progress.gold < node.costGold) {
-      return { can: false, reason: `نیاز به ${node.costGold} سکه طلا دارید` };
+      return {
+        can: false,
+        reason:
+          lang === 'fa'
+            ? `نیاز به ${node.costGold} سکه طلا دارید`
+            : lang === 'ar'
+            ? `تحتاج إلى ${node.costGold} عملة ذهبية`
+            : lang === 'fr'
+            ? `Nécessite ${node.costGold} pièces d'or`
+            : `Requires ${node.costGold} Gold`,
+      };
     }
 
     return { can: true };

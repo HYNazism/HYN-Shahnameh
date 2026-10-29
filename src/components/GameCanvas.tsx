@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { HeroDef, StageDef, Language, GraphicsTier } from '../types/game';
+import { HeroDef, StageDef, Language, GraphicsTier, PlayerAlignment } from '../types/game';
 import { GameEngine } from '../game/GameEngine';
 import { TRANSLATIONS } from '../constants/translations';
 import { MobileControls } from './MobileControls';
@@ -7,10 +7,12 @@ import { GraphicsSelector } from './GraphicsSelector';
 import { Pause, Play, Volume2, VolumeX, ShieldAlert, Zap, BookOpen, X, Scroll, Flame, Swords } from 'lucide-react';
 import { sound } from '../utils/audio';
 import { StoryLogicManager } from '../game/StoryLogicManager';
+import { ManuscriptFrame, KatibehCartouche } from './ShahnamehManuscriptFrame';
 
 interface Props {
   hero: HeroDef;
   stage: StageDef;
+  alignment?: PlayerAlignment;
   graphicsTier: GraphicsTier;
   onSelectGraphicsTier: (tier: GraphicsTier) => void;
   weaponBonusDamage: number;
@@ -28,6 +30,7 @@ interface Props {
 export const GameCanvas: React.FC<Props> = ({
   hero,
   stage,
+  alignment = 'good',
   graphicsTier,
   onSelectGraphicsTier,
   weaponBonusDamage,
@@ -61,14 +64,14 @@ export const GameCanvas: React.FC<Props> = ({
   // In-battle narrative subtitle banner
   const [inBattleSubtitle, setInBattleSubtitle] = useState<string | null>(null);
 
-  const storyProfile = StoryLogicManager.getStageProfile(stage, hero.id, lang);
+  const storyProfile = StoryLogicManager.getStageProfile(stage, alignment, lang);
 
   // Dialogue Banner (filtered & personalized by StoryLogicManager)
   const [showDialogue, setShowDialogue] = useState(!!storyProfile.dialogueProse);
 
   useEffect(() => {
     setShowDialogue(!!storyProfile.dialogueProse);
-  }, [stage.id, hero.id, storyProfile.dialogueProse]);
+  }, [stage.id, alignment, storyProfile.dialogueProse]);
 
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(sound.getIsMuted());
@@ -144,7 +147,9 @@ export const GameCanvas: React.FC<Props> = ({
       (subtitleText: string) => {
         setInBattleSubtitle(subtitleText);
       },
-      hasSimurghBoots
+      hasSimurghBoots,
+      lang,
+      alignment
     );
 
     engineRef.current = engine;
@@ -199,9 +204,9 @@ export const GameCanvas: React.FC<Props> = ({
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
-    // Re-create engine only when hero ID, stage ID or simurgh boots change
+    // Re-create engine only when hero ID, stage ID, alignment, lang or simurgh boots change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hero.id, stage.id, hasSimurghBoots]);
+  }, [hero.id, stage.id, alignment, lang, hasSimurghBoots]);
 
   // Dynamically update combat bonuses without resetting player position
   useEffect(() => {
@@ -271,30 +276,32 @@ export const GameCanvas: React.FC<Props> = ({
 
       {/* Top HUD Cluster */}
       <div className="absolute top-0 inset-x-0 safe-top safe-px p-3 md:p-5 flex items-start justify-between pointer-events-none z-20">
-        {/* Start Edge: Player Vitality & Farreh Frame */}
-        <div className="flex flex-col gap-1.5 pointer-events-auto bg-slate-950/90 p-2.5 md:p-3 rounded-2xl border border-amber-500/40 shadow-2xl backdrop-blur-md min-w-[190px] md:min-w-[250px]">
+        {/* Start Edge: Player Vitality & Farreh Illuminated Jadval Frame */}
+        <div className="flex flex-col gap-1.5 pointer-events-auto bg-[#060c1d]/95 p-2.5 md:p-3 rounded-xl jadval-double-border backdrop-blur-md min-w-[195px] md:min-w-[260px]">
           <div className="flex items-center justify-between text-xs font-bold">
-            <span className="text-amber-300 flex items-center gap-1.5">
+            <span className="text-amber-200 flex items-center gap-1.5">
               <span
-                className="w-2.5 h-2.5 rounded-full ring-2 ring-amber-500/40"
+                className="w-2.5 h-2.5 rounded-full ring-2 ring-amber-400/60"
                 style={{ backgroundColor: hero.color }}
               />
-              <span className="truncate max-w-[110px] md:max-w-none">{t[hero.nameKey]}</span>
+              <span className="truncate max-w-[140px] md:max-w-none nastaliq-title text-sm">
+                {hero.customDisplayName || storyProfile.heroConfig.heroName || t[hero.nameKey]}
+              </span>
             </span>
-            <span className="text-slate-300 font-mono tabular-nums text-xs">
+            <span className="text-amber-100 font-mono tabular-nums text-xs">
               {hp} / {maxHp}
             </span>
           </div>
 
-          {/* Health Gauge with Segments */}
-          <div className="w-full bg-slate-900 rounded-lg h-3 overflow-hidden border border-slate-700/80 p-0.5 shadow-inner">
+          {/* Health Gauge with Royal Mineral Pigments */}
+          <div className="w-full bg-slate-950 rounded-md h-3 overflow-hidden border border-amber-500/45 p-0.5 shadow-inner">
             <div
-              className="h-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-400 rounded transition-all duration-150"
+              className="h-full bg-gradient-to-r from-emerald-700 via-teal-500 to-emerald-300 rounded-xs transition-all duration-150"
               style={{ width: `${hpPercentage}%` }}
             />
           </div>
 
-          {/* Farreh (Rage) Gauge */}
+          {/* Farreh-ye Izadi / Ahrimanic Wrath Gauge */}
           <div className="flex items-center justify-between text-[11px] text-amber-200 mt-0.5 font-medium">
             <span className="flex items-center gap-1 text-amber-300">
               <Flame className="w-3.5 h-3.5 text-amber-400" />
@@ -302,35 +309,35 @@ export const GameCanvas: React.FC<Props> = ({
             </span>
             <span className="font-mono tabular-nums font-bold">{rage}%</span>
           </div>
-          <div className="w-full bg-slate-900 rounded-lg h-2 overflow-hidden border border-amber-900/40 p-0.5 shadow-inner">
+          <div className="w-full bg-slate-950 rounded-md h-2 overflow-hidden border border-amber-600/50 p-0.5 shadow-inner">
             <div
-              className="h-full bg-gradient-to-r from-amber-600 via-orange-500 to-yellow-400 rounded transition-all duration-100"
+              className="h-full bg-gradient-to-r from-red-600 via-amber-500 to-yellow-300 rounded-xs transition-all duration-100"
               style={{ width: `${ragePercentage}%` }}
             />
           </div>
         </div>
 
-        {/* Center: Boss HP Bar if active */}
+        {/* Center: Exclusive Final Boss Illuminated Confrontation Bar */}
         {bossHp !== undefined && bossMaxHp !== undefined && bossHp > 0 && (() => {
           const bossDisplayName = storyProfile.bossConfig.bossDisplayName;
           const bossDuelId = storyProfile.bossConfig.duelOpponentId;
           const duelButtonText = storyProfile.bossConfig.duelButtonLabel;
 
           return (
-            <div className="pointer-events-auto flex flex-col items-center gap-1.5 bg-red-950/90 px-3 md:px-4 py-2 rounded-2xl border border-red-500/70 shadow-2xl backdrop-blur-md max-w-sm w-full mx-2 md:mx-4 animate-fadeIn">
-              <div className="flex items-center justify-between w-full text-xs font-bold text-red-200">
+            <div className="pointer-events-auto flex flex-col items-center gap-1.5 bg-[#1f060a]/95 px-3.5 md:px-4 py-2.5 rounded-xl border-2 border-red-500/80 shadow-[0_10px_35px_rgba(0,0,0,0.9),inset_0_0_20px_rgba(220,38,38,0.25)] backdrop-blur-md max-w-sm w-full mx-2 md:mx-4 animate-fadeIn">
+              <div className="flex items-center justify-between w-full text-xs font-bold text-amber-200">
                 <div className="flex items-center gap-1.5 truncate">
                   <ShieldAlert className="w-4 h-4 text-red-400 shrink-0" />
-                  <span className="truncate">{bossDisplayName}</span>
+                  <span className="truncate nastaliq-title text-sm">{bossDisplayName}</span>
                 </div>
-                <span className="font-mono tabular-nums text-red-300 text-xs shrink-0">
+                <span className="font-mono tabular-nums text-red-200 text-xs shrink-0">
                   {bossHp} / {bossMaxHp}
                 </span>
               </div>
 
-              <div className="w-full bg-slate-950 rounded-lg h-2.5 overflow-hidden border border-red-800 p-0.5">
+              <div className="w-full bg-slate-950 rounded-md h-3 overflow-hidden border border-amber-500/50 p-0.5">
                 <div
-                  className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 rounded transition-all duration-150"
+                  className="h-full bg-gradient-to-r from-red-700 via-rose-500 to-amber-400 rounded-xs transition-all duration-150"
                   style={{ width: `${Math.max(0, (bossHp / bossMaxHp) * 100)}%` }}
                 />
               </div>
@@ -338,7 +345,7 @@ export const GameCanvas: React.FC<Props> = ({
               {onStartBossDuel && (
                 <button
                   onClick={() => onStartBossDuel(bossDuelId)}
-                  className="mt-1 px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-[11px] rounded-lg shadow-md flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95 border border-amber-300/40"
+                  className="mt-1 px-3 py-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-[11px] rounded-lg shadow-md flex items-center gap-1.5 cursor-pointer transition-transform active:scale-95 border border-amber-200"
                 >
                   <Swords className="w-3.5 h-3.5" />
                   <span>{duelButtonText}</span>
@@ -401,44 +408,48 @@ export const GameCanvas: React.FC<Props> = ({
         </div>
       )}
 
-      {/* In-Battle Story Waypoint Narrative Subtitle Banner */}
+      {/* In-Battle Story Waypoint Narrative Katibeh Banner */}
       {inBattleSubtitle && (
         <div className="absolute top-24 inset-x-4 max-w-xl mx-auto z-25 pointer-events-none animate-fadeIn">
-          <div className="bg-slate-950/95 border border-amber-500/70 px-4 py-2 rounded-xl shadow-2xl backdrop-blur-md text-center flex items-center justify-center gap-2.5">
-            <Scroll className="w-4 h-4 text-amber-400 shrink-0" />
-            <p className="text-xs md:text-sm text-amber-100 italic font-medium leading-relaxed">
-              {inBattleSubtitle}
-            </p>
-          </div>
+          <KatibehCartouche
+            hemistich1={inBattleSubtitle}
+            variant={alignment === 'evil' ? 'crimson' : 'lapis'}
+          />
         </div>
       )}
 
-      {/* Story Dialogue Banner (filtered by StoryLogicManager per hero & stage) */}
+      {/* Story Dialogue Illuminated Folio Banner */}
       {showDialogue && storyProfile.dialogueProse && (
-        <div className="absolute top-24 inset-x-4 max-w-xl mx-auto z-30 pointer-events-auto bg-slate-950/95 border-2 border-amber-500/70 p-4 rounded-2xl shadow-2xl backdrop-blur-md flex flex-col gap-2.5 animate-fadeIn">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
-              <BookOpen className="w-4 h-4" />
-              <span>{storyProfile.dialogueHeader}</span>
+        <div className="absolute top-24 inset-x-4 max-w-xl mx-auto z-30 pointer-events-auto animate-fadeIn">
+          <ManuscriptFrame
+            variant={alignment === 'evil' ? 'crimson' : 'lapis'}
+            showLachakCorners={true}
+            contentClassName="p-4 flex flex-col gap-2.5"
+          >
+            <div className="flex items-center justify-between border-b border-amber-500/30 pb-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-300">
+                <BookOpen className="w-4 h-4 text-amber-400" />
+                <span>{storyProfile.dialogueHeader}</span>
+              </div>
+              <button
+                onClick={() => setShowDialogue(false)}
+                className="text-amber-300/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
+
+            <p className="text-xs md:text-sm text-amber-100 italic leading-relaxed text-center py-1">
+              {storyProfile.dialogueProse}
+            </p>
+
             <button
               onClick={() => setShowDialogue(false)}
-              className="text-slate-400 hover:text-white cursor-pointer"
+              className="w-full py-2 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-md cursor-pointer hover:from-amber-400 hover:to-yellow-300 transition-colors"
             >
-              <X className="w-4 h-4" />
+              {t.close_dialogue_start_battle}
             </button>
-          </div>
-
-          <p className="text-xs md:text-sm text-amber-100 italic leading-relaxed text-center py-1">
-            {storyProfile.dialogueProse}
-          </p>
-
-          <button
-            onClick={() => setShowDialogue(false)}
-            className="w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-md cursor-pointer hover:from-amber-400 hover:to-amber-500 transition-colors"
-          >
-            بستن دیالوگ و آغاز رزم پهلوانان
-          </button>
+          </ManuscriptFrame>
         </div>
       )}
 
@@ -459,22 +470,27 @@ export const GameCanvas: React.FC<Props> = ({
         {/* Mobile Floating Virtual D-Pad & Action Controls */}
         <MobileControls
           engine={engineRef.current}
-          specialSkillName={t[hero.specialKey]}
-          heroId={hero.id}
+          specialSkillName={hero.customSpecialName || storyProfile.heroConfig.specialName || t[hero.specialKey]}
+          heroId={storyProfile.heroConfig.heroRenderId || hero.id}
           lang={lang}
         />
       </div>
 
       {/* Pause Modal Overlay */}
       {isPaused && (
-        <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center z-50 p-4">
-          <div className="bg-[#0b101e] border-2 border-amber-500/60 p-6 rounded-2xl max-w-sm w-full text-center shadow-2xl flex flex-col gap-4 animate-fadeInScale">
-            <h2 className="text-2xl font-black text-amber-400 tracking-wide">{t.pause}</h2>
-            <p className="text-xs text-slate-300 leading-relaxed">{t[stage.descKey]}</p>
+        <div className="absolute inset-0 bg-slate-950/88 backdrop-blur-md flex flex-col items-center justify-center z-50 p-4">
+          <ManuscriptFrame
+            variant="lapis"
+            showSarloh={true}
+            sarlohTitle={t.pause}
+            className="max-w-sm w-full text-center animate-fadeInScale"
+            contentClassName="p-6 flex flex-col gap-4"
+          >
+            <p className="text-xs text-amber-100/85 leading-relaxed">{t[stage.descKey]}</p>
 
             {/* In-game Graphics Quality Selector */}
             <div className="flex flex-col gap-1.5 items-center">
-              <span className="text-[11px] text-slate-400">{t.graphics_quality}:</span>
+              <span className="text-[11px] text-amber-300/80">{t.graphics_quality}:</span>
               <GraphicsSelector
                 currentTier={graphicsTier}
                 onSelectTier={onSelectGraphicsTier}
@@ -485,18 +501,18 @@ export const GameCanvas: React.FC<Props> = ({
             <div className="flex flex-col gap-2.5 mt-2">
               <button
                 onClick={handleTogglePause}
-                className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition-transform active:scale-95 cursor-pointer shadow-md"
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-xl transition-transform active:scale-95 cursor-pointer shadow-md"
               >
                 {t.resume}
               </button>
               <button
                 onClick={onReturnToMenu}
-                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-xl transition-colors cursor-pointer"
+                className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 border border-amber-500/35 text-amber-200 font-bold rounded-xl transition-colors cursor-pointer"
               >
                 {t.return_to_menu}
               </button>
             </div>
-          </div>
+          </ManuscriptFrame>
         </div>
       )}
     </div>

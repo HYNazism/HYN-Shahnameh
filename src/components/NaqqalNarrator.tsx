@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, VolumeX, Bell, Play, Pause, Sparkles, BookOpen } from 'lucide-react';
 import { naqqalAudio } from '../utils/naqqalAudio';
+import { Language } from '../types/game';
+import { TRANSLATIONS } from '../constants/translations';
 
 interface Props {
   title: string;
@@ -8,6 +10,7 @@ interface Props {
   poet: string;
   fullProse?: string;
   compact?: boolean;
+  lang?: Language;
 }
 
 export const NaqqalNarrator: React.FC<Props> = ({
@@ -16,7 +19,9 @@ export const NaqqalNarrator: React.FC<Props> = ({
   poet,
   fullProse,
   compact = false,
+  lang = 'fa',
 }) => {
+  const t = TRANSLATIONS[lang];
   const [isPlaying, setIsPlaying] = useState(false);
   const [staffTapped, setStaffTapped] = useState(false);
   const [gesturePhase, setGesturePhase] = useState<'idle' | 'pointing' | 'reciting' | 'dramatic'>('idle');
@@ -220,7 +225,7 @@ export const NaqqalNarrator: React.FC<Props> = ({
 
           <span className="text-[10px] text-amber-300 font-bold mt-1.5 flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-amber-400" />
-            نقال پرده‌خوان شاهنامه
+            {t.naqqal_badge}
           </span>
         </div>
 
@@ -230,7 +235,7 @@ export const NaqqalNarrator: React.FC<Props> = ({
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold text-amber-400/90 tracking-wider block">
-                روایت حماسی فردوسی بزرگ
+                {t.naqqal_subtitle}
               </span>
               <h3 className="text-sm md:text-base font-black text-slate-100">
                 {title}
@@ -240,11 +245,11 @@ export const NaqqalNarrator: React.FC<Props> = ({
             {/* Quick Zang Morshed Button */}
             <button
               onClick={handleRingBell}
-              title="نواختن زنگ مرشد زورخانه"
+              title={t.zang_morshed_btn}
               className="px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/60 rounded-xl text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer shadow-sm"
             >
               <Bell className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span>زنگ مرشد</span>
+              <span>{t.zang_morshed_btn}</span>
             </button>
           </div>
 
@@ -278,12 +283,12 @@ export const NaqqalNarrator: React.FC<Props> = ({
               {isPlaying ? (
                 <>
                   <Pause className="w-4 h-4 fill-white" />
-                  <span>توقف روایت صوتی</span>
+                  <span>{t.naqqal_stop_btn}</span>
                 </>
               ) : (
                 <>
                   <Volume2 className="w-4 h-4" />
-                  <span>طنین روایت صوتی نقال با ضرب زورخانه</span>
+                  <span>{t.naqqal_play_btn}</span>
                 </>
               )}
             </button>

@@ -1,4 +1,5 @@
-import { HeroDef, StageDef, GraphicsTier } from '../types/game';
+import { HeroDef, StageDef, GraphicsTier, Language, PlayerAlignment } from '../types/game';
+import { TRANSLATIONS } from '../constants/translations';
 import { PersianMiniatureEnvironment } from './PersianMiniatureEnvironment';
 import { QahvehKhanehRenderer } from './QahvehKhanehRenderer';
 import { StoryLogicManager } from './StoryLogicManager';
@@ -168,12 +169,16 @@ export class GameEngine {
   public currentComboCount: number = 0;
   public comboDecayTimer: number = 0;
 
-  // Narrative Waypoint tracking in stage
+  // Narrative Waypoint tracking & End-of-Stage Boss Arena Lock
   private narrativePassed = {
     start: false,
     mid: false,
     boss: false,
   };
+  private bossSpawned: boolean = false;
+  private bossArenaLocked: boolean = false;
+  public lang: Language = 'fa';
+  public alignment: PlayerAlignment = 'good';
 
   // World & Camera
   public worldWidth = 3400;
@@ -223,7 +228,9 @@ export class GameEngine {
     onComboUpdate: (comboCount: number, multiplier: number) => void,
     onFinisherLanded: () => void,
     onNarrativeMilestone: (text: string) => void,
-    hasSimurghBoots: boolean = false
+    hasSimurghBoots: boolean = false,
+    lang: Language = 'fa',
+    alignment: PlayerAlignment = 'good'
   ) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
@@ -239,6 +246,8 @@ export class GameEngine {
     this.onFinisherLanded = onFinisherLanded;
     this.onNarrativeMilestone = onNarrativeMilestone;
     this.hasSimurghBoots = hasSimurghBoots;
+    this.lang = lang;
+    this.alignment = alignment;
 
     this.player.maxHp = hero.maxHp;
     this.player.hp = hero.maxHp;
@@ -267,6 +276,8 @@ export class GameEngine {
     this.weatherParticles = [];
 
     this.narrativePassed = { start: false, mid: false, boss: false };
+    this.bossSpawned = false;
+    this.bossArenaLocked = false;
 
     // Continuous Ground Floor
     this.platforms.push({ x: 0, y: 550, w: this.worldWidth, h: 100, isGround: true, hasTorch: true });
@@ -285,7 +296,7 @@ export class GameEngine {
     ];
     platformData.forEach(p => this.platforms.push(p));
 
-    // Regular stage enemies
+    // Regular stage enemies ONLY (no mid-stage giants or bosses; boss spawns exclusively at stage end)
     this.enemies.push(
       this.createEnemy('grunt', 420, 480, 280, 600),
       this.createEnemy('archer', 580, 280, 550, 740),
@@ -293,8 +304,7 @@ export class GameEngine {
       this.createEnemy('grunt', 1250, 480, 1100, 1500),
       this.createEnemy('archer', 1780, 240, 1730, 1940),
       this.createEnemy('flying_akvan', 2150, 230, 2000, 2350),
-      this.createEnemy('grunt', 2450, 480, 2300, 2650),
-      this.createChapterBoss(2850, 400, this.stage.id)
+      this.createEnemy('grunt', 2380, 480, 2220, 2520)
     );
 
     this.platforms.push({ x: 3180, y: 430, w: 70, h: 120, isGate: true });
@@ -456,9 +466,10 @@ export class GameEngine {
 
   private update(dt: number) {
     this.player.animFrame += dt * 10;
+    const t = TRANSLATIONS[this.lang];
 
-    // Check narrative milestones via StoryLogicManager
-    const storyProfile = StoryLogicManager.getStageProfile(this.stage, this.hero.id, 'fa');
+    // Check narrative milestones & End-of-Stage Boss Arena Lock via StoryLogicManager
+    const storyProfile = StoryLogicManager.getStageProfile(this.stage, this.alignment, this.lang);
     if (!this.narrativePassed.start && this.player.x > 300) {
       this.narrativePassed.start = true;
       if (storyProfile.waypoints.start) {
@@ -469,8 +480,23 @@ export class GameEngine {
       if (storyProfile.waypoints.mid) {
         this.onNarrativeMilestone(storyProfile.waypoints.mid);
       }
-    } else if (!this.narrativePassed.boss && this.player.x > 2600) {
+    } else if (!this.bossSpawned && this.player.x >= 2560) {
+      this.bossSpawned = true;
+      this.bossArenaLocked = true;
       this.narrativePassed.boss = true;
+
+      // Clear any remaining normal enemies near the boss arena so the boss fight is 100% exclusive
+      this.enemies = this.enemies.filter(e => e.x < 2200);
+
+      // Spawn the stage-specific final boss with cinematic entrance
+      const chapterBoss = this.createChapterBoss(2940, 400, this.stage.id);
+      this.enemies.push(chapterBoss);
+      this.screenShake = 18;
+      sound.playDohol(65);
+      this.spawnShockwave(2940, 460);
+      this.spawnParticles(2940, 460, '#f59e0b', 45);
+      this.addFloatingText(this.player.x, this.player.y - 40, t.boss_arena_locked_msg || 'BOSS FIGHT!', '#f59e0b');
+
       if (storyProfile.waypoints.boss) {
         this.onNarrativeMilestone(storyProfile.waypoints.boss);
       }
@@ -549,14 +575,18 @@ export class GameEngine {
       );
     }
 
-    if (this.player.x < 10) this.player.x = 10;
-    if (this.player.x > this.worldWidth - this.player.w - 10) {
-      this.player.x = this.worldWidth - this.player.w - 10;
+    const activeBossExists = this.enemies.some(e => e.isBoss && e.hp > 0);
+    const minPlayerX = (this.bossArenaLocked && activeBossExists) ? 2420 : 10;
+    const maxPlayerX = (this.bossArenaLocked && activeBossExists) ? 3140 : (this.worldWidth - this.player.w - 10);
+
+    if (this.player.x < minPlayerX) this.player.x = minPlayerX;
+    if (this.player.x > maxPlayerX) {
+      this.player.x = maxPlayerX;
     }
 
     if (this.player.y > this.worldHeight + 100) {
       this.takePlayerDamage(40);
-      this.player.x = Math.max(100, this.player.x - 200);
+      this.player.x = Math.max(minPlayerX + 60, this.player.x - 200);
       this.player.y = 350;
       this.player.vy = 0;
     }
@@ -600,6 +630,7 @@ export class GameEngine {
         this.player.specialCooldown = 5.0;
         sound.playSpecial();
         this.screenShake = 12;
+        const specialLabel = `${storyProfile.heroConfig.specialName}!`;
 
         if (this.hero.id === 'rostam') {
           this.spawnParticles(this.player.x, this.player.y + this.player.h, '#d97706', 40);
@@ -610,7 +641,7 @@ export class GameEngine {
               e.vy = -360;
             }
           });
-          this.addFloatingText(this.player.x, this.player.y - 20, 'زمین‌لرزه تهمتن!', '#f59e0b');
+          this.addFloatingText(this.player.x, this.player.y - 20, specialLabel, '#f59e0b');
         } else if (this.hero.id === 'sohrab') {
           this.player.vx = this.player.facing * 720;
           this.player.isInvulnerable = true;
@@ -621,7 +652,7 @@ export class GameEngine {
               this.damageEnemy(e, 70 + this.weaponBonusDamage * 1.5);
             }
           });
-          this.addFloatingText(this.player.x, this.player.y - 20, 'گردباد تیغ توران!', '#38bdf8');
+          this.addFloatingText(this.player.x, this.player.y - 20, specialLabel, '#38bdf8');
         } else {
           this.spawnParticles(this.player.x, this.player.y - 50, '#ef4444', 30);
           for (let i = 0; i < 8; i++) {
@@ -638,10 +669,10 @@ export class GameEngine {
               life: 1.5,
             });
           }
-          this.addFloatingText(this.player.x, this.player.y - 20, 'باران تیرهای آتشین!', '#ef4444');
+          this.addFloatingText(this.player.x, this.player.y - 20, specialLabel, '#ef4444');
         }
       } else {
-        this.addFloatingText(this.player.x, this.player.y - 20, 'نیاز به ۳۰٪ فرّه ایزدی!', '#94a3b8');
+        this.addFloatingText(this.player.x, this.player.y - 20, t.float_need_farreh || 'Need 30% Farreh!', '#94a3b8');
       }
     }
     this.prevSpecial = this.input.special;
@@ -778,23 +809,23 @@ export class GameEngine {
           if (c.type === 'gold') {
             const added = Math.round(c.value * mult);
             this.stageGoldEarned += added;
-            this.addFloatingText(c.x, c.y, `+${added} زر`, '#fbbf24');
+            this.addFloatingText(c.x, c.y, `+${added} ${t.gold}`, '#fbbf24');
           } else if (c.type === 'gem') {
             this.stageGemsEarned += c.value;
-            this.addFloatingText(c.x, c.y, `+${c.value} گوهر`, '#38bdf8');
+            this.addFloatingText(c.x, c.y, `+${c.value} ${t.gems}`, '#38bdf8');
           } else if (c.type === 'noshdaru') {
             this.player.hp = Math.min(this.player.maxHp, this.player.hp + c.value);
-            this.addFloatingText(c.x, c.y, `+${c.value} نوشدارو`, '#10b981');
+            this.addFloatingText(c.x, c.y, `+${c.value} ${t.float_noshdaru || 'HP'}`, '#10b981');
           }
           this.spawnParticles(c.x, c.y, '#fbbf24', this.graphicsTier === 'low' ? 4 : 12);
         }
       }
     });
 
-    // Check Victory Gate
+    // Check Victory Gate (only unlocks AFTER the end-of-stage boss has spawned and been defeated)
     const gate = this.platforms.find(p => p.isGate);
     const bossesRemaining = this.enemies.filter(e => e.isBoss).length;
-    if (gate && bossesRemaining === 0) {
+    if (gate && this.bossSpawned && bossesRemaining === 0) {
       if (
         this.player.x + this.player.w > gate.x &&
         this.player.x < gate.x + gate.w &&
@@ -832,7 +863,9 @@ export class GameEngine {
       }
     }
 
-    const targetCamX = this.player.x - this.canvas.width / 2 + this.player.w / 2;
+    const targetCamX = (this.bossArenaLocked && bossesRemaining > 0)
+      ? 2200
+      : (this.player.x - this.canvas.width / 2 + this.player.w / 2);
     this.cameraX += (targetCamX - this.cameraX) * 0.1;
     this.cameraX = Math.max(0, Math.min(this.worldWidth - this.canvas.width, this.cameraX));
 
@@ -913,7 +946,7 @@ export class GameEngine {
           this.hitStopTimer = 0.07; // 70ms cinematic impact crunch
           e.vx = this.player.facing * 520;
           e.vy = -340;
-          this.addFloatingText(e.x + e.width / 2, e.y - 25, 'فینیشر پرتاب‌کننده!', '#f59e0b');
+          this.addFloatingText(e.x + e.width / 2, e.y - 25, TRANSLATIONS[this.lang].float_finisher || 'FINISHER!', '#f59e0b');
         } else if (e.isBoss) {
           this.hitStopTimer = 0.04;
           e.vx = this.player.facing * 180;
@@ -944,21 +977,23 @@ export class GameEngine {
     e.isHit = true;
     e.hitTimer = 0.2;
     sound.playHit();
+    const critLabel = TRANSLATIONS[this.lang].float_crit_hit || 'CRIT!';
 
     this.addFloatingText(
       e.x + e.width / 2,
       e.y - 10,
-      `${isCrit ? 'ضربت کاری! ' : ''}${dmg}`,
+      `${isCrit ? `${critLabel} ` : ''}${dmg}`,
       isCrit ? '#ef4444' : '#fbbf24'
     );
   }
 
   private takePlayerDamage(rawDamage: number) {
+    const t = TRANSLATIONS[this.lang];
     if (this.player.isParrying) {
       sound.playParrySuccess();
       this.screenShake = 8;
       this.spawnParticles(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, '#fbbf24', 25);
-      this.addFloatingText(this.player.x + this.player.w / 2, this.player.y - 25, 'دفع برق‌آسا (Parry)!', '#fbbf24');
+      this.addFloatingText(this.player.x + this.player.w / 2, this.player.y - 25, t.float_parry || 'PARRY!', '#fbbf24');
       this.currentComboCount += 2;
       this.player.rage = Math.min(this.player.maxRage, this.player.rage + 15);
       // Stagger nearby enemies
@@ -994,7 +1029,7 @@ export class GameEngine {
         this.player.invulnTimer = 2.5;
         this.spawnParticles(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, '#fbbf24', 50);
         sound.playSimurghAura();
-        this.addFloatingText(this.player.x + this.player.w / 2, this.player.y - 35, 'پر سیمرغ: احیای تهمتن!', '#fef08a');
+        this.addFloatingText(this.player.x + this.player.w / 2, this.player.y - 35, t.float_simurgh_revive || 'Revived!', '#fef08a');
         return;
       }
       this.player.hp = 0;
@@ -1293,7 +1328,7 @@ export class GameEngine {
         ctx.fillStyle = '#fef08a';
         ctx.font = 'bold 13px Vazirmatn, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('دروازه فتح', p.x + p.w / 2, p.y - 28);
+        ctx.fillText(TRANSLATIONS[this.lang].gate_of_victory_label || 'Victory Gate', p.x + p.w / 2, p.y - 28);
         ctx.textAlign = 'start';
         return;
       }
@@ -1557,7 +1592,9 @@ export class GameEngine {
 
         ctx.fillStyle = '#78350f';
         ctx.font = 'bold 9px Vazirmatn, sans-serif';
-        ctx.fillText('زر', c.x - 5, bobY + 3);
+        ctx.textAlign = 'center';
+        ctx.fillText(this.lang === 'fa' || this.lang === 'ar' ? 'زر' : 'G', c.x, bobY + 3);
+        ctx.textAlign = 'start';
       } else if (c.type === 'gem') {
         ctx.fillStyle = '#0ea5e9';
         ctx.beginPath();
@@ -1584,6 +1621,7 @@ export class GameEngine {
 
   private renderPlayer(ctx: CanvasRenderingContext2D) {
     const p = this.player;
+    const storyProfile = StoryLogicManager.getStageProfile(this.stage, this.alignment, this.lang);
 
     ctx.save();
     ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
@@ -1594,7 +1632,7 @@ export class GameEngine {
 
     QahvehKhanehRenderer.renderHero({
       ctx,
-      heroId: this.hero.id,
+      heroId: storyProfile.heroConfig.heroRenderId || this.hero.id,
       facing: p.facing,
       animFrame: p.animFrame,
       vx: p.vx,
@@ -1616,6 +1654,7 @@ export class GameEngine {
 
   private renderEnemies(ctx: CanvasRenderingContext2D) {
     const now = performance.now() * 0.001;
+    const storyProfile = StoryLogicManager.getStageProfile(this.stage, this.alignment, this.lang);
     this.enemies.forEach(e => {
       if (e.x + e.width < this.cameraX - 120 || e.x > this.cameraX + this.canvas.width + 120) return;
 
@@ -1629,7 +1668,9 @@ export class GameEngine {
         ctx,
         type: e.type,
         stageId: this.stage.id,
-        heroId: this.hero.id,
+        heroId: storyProfile.heroConfig.heroRenderId || this.hero.id,
+        bossRenderId: storyProfile.bossConfig.bossRenderId,
+        alignment: this.alignment,
         width: e.width,
         height: e.height,
         vx: e.vx,

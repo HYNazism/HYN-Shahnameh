@@ -1,6 +1,6 @@
-a8730cc3f79f86a627a9a29203ac89ee3348e4231d205da78b4a2ce1b0538fd5  shahnameh-v1.1.0-windows-x64-executable.zip
-0a86a87e014df1ea3d5aaac48426eb34ea34dd7f491c3f05bdbbd0cebbc4f8e4  shahnameh-v1.1.0-macos-universal-app.zip
-95ed9a7c041d9455f84150b5159f52b792e23f98604517c33d16529626419500  shahnameh-v1.1.0-linux-x64-executable.zip
-c1ab5583d1088d924b0713d56704dd78080c34adf1360b1f43dc33710ef3b811  shahnameh-v1.1.0-android-apk-bundle.zip
-df6ab20f970fbd0b1300b8ac9744bb7a6b770c78e8c2015b90968e75ccc57d61  shahnameh-v1.1.0-ios-ipados-bundle.zip
-8b8b0fb8ba91483da1fce32749a07232f09db69c6c13456f190d3b6832513321  shahnameh-v1.1.0-web-pwa.zip
+152f004ebac892291767d1159c5905c6017586ffa706bd8e57a38c4eb84009a9  shahnameh-v2.7.1-windows-x64-executable.zip
+ef71ffbfe2b1ceed81ec885d1e2b9e6aeedc1bd691dd37f13538f6ad3f346a4d  shahnameh-v2.7.1-macos-universal-app.zip
+676a8061dc6be3dcc683c5045a7815a76bafe51b9e6f42d9546564ef6b260c4e  shahnameh-v2.7.1-linux-x64-executable.zip
+992eaaf722fcbd189fbec631e8458e1319601ba7a91ca1588acdb91cd8670b3a  shahnameh-v2.7.1-android-apk-bundle.zip
+c9e6119c7d1389a68a2b214d28e5a09fee6b3e5572ea1075ac32620e6fac484d  shahnameh-v2.7.1-ios-ipados-bundle.zip
+862d2cce0fcd85040a1d3221bcfb7c2c0d71468fcc652b164dd358fc80f5ea58  shahnameh-v2.7.1-web-pwa.zip

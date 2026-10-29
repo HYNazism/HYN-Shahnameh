@@ -10,6 +10,7 @@ import {
   Language,
   GraphicsTier,
   PlayerProgress,
+  PlayerAlignment,
   MonetizationState,
   PlayerStoreItem,
 } from './types/game';
@@ -42,9 +43,11 @@ import { NaqqalNarrator } from './components/NaqqalNarrator';
 import { GitHubReleasesModal } from './components/GitHubReleasesModal';
 import { EpisodeData } from './types';
 import { SkillSystem } from './game/SkillSystem';
+import { StoryLogicManager } from './game/StoryLogicManager';
 import { EPISODES_DATA } from './constants/gameData';
 import { Trophy, Skull, Sparkles, RefreshCw, ArrowRight, Video, X } from 'lucide-react';
 import { sound } from './utils/audio';
+import { ManuscriptFrame } from './components/ShahnamehManuscriptFrame';
 
 export default function App() {
   const [lang, setLang] = useState<Language>(() => loadLanguage());
@@ -129,6 +132,14 @@ export default function App() {
     setProgress(prev => ({ ...prev, selectedHero: heroId }));
   };
 
+  const handleSelectAlignment = (alignment: PlayerAlignment) => {
+    setProgress(prev => ({
+      ...prev,
+      alignment,
+      hasChosenAlignment: true,
+    }));
+  };
+
   const handleSelectStage = (stageId: number) => {
     setProgress(prev => ({ ...prev, currentStage: stageId }));
   };
@@ -203,7 +214,7 @@ export default function App() {
       itemTitle: t[item.titleKey] || item.titleKey,
       amountUsd: item.priceUsd,
       cryptoCurrency: paymentNetwork,
-      timestamp: 'هم‌اکنون',
+      timestamp: 'Now',
       payerWallet: monetization.connectedWallet || 'T9x...4Lm9',
     };
 
@@ -218,10 +229,10 @@ export default function App() {
   const handleSendTipDonation = (amountUsd: number, network: string) => {
     const newTx = {
       id: `tx_tip_${Date.now()}`,
-      itemTitle: 'حمایت مستقیم حامی سلطنتی',
+      itemTitle: t.vip_royal_patron,
       amountUsd,
       cryptoCurrency: network,
-      timestamp: 'هم‌اکنون',
+      timestamp: 'Now',
       payerWallet: monetization.connectedWallet || 'T9x...4Lm9',
     };
 
@@ -236,7 +247,7 @@ export default function App() {
       gold: prev.gold + 1000,
       gems: prev.gems + 50,
       isVipBenefactor: true,
-      donorBadge: `حامی سلطنتی ${network}`,
+      donorBadge: `${t.vip_royal_patron} (${network})`,
     }));
   };
 
@@ -255,10 +266,10 @@ export default function App() {
 
     const newTx = {
       id: `tx_ad_${Date.now()}`,
-      itemTitle: `واریز خودکار تبلیغ اسپانسری (${campaign?.networkName || 'TON Ads'})`,
+      itemTitle: `${campaign?.networkName || 'TON Ads'}`,
       amountUsd: rewardUsd,
       cryptoCurrency: `${currency} (${network.toUpperCase()})`,
-      timestamp: 'هم‌اکنون',
+      timestamp: 'Now',
       payerWallet: recipient,
     };
 
@@ -370,22 +381,19 @@ export default function App() {
     setView('VICTORY');
   }, []);
 
-  const selectedHero = HEROES.find(h => h.id === progress.selectedHero) || HEROES[0];
+  const currentAlignment: PlayerAlignment = progress.alignment || 'good';
   const selectedStage = STAGES.find(s => s.id === progress.currentStage) || STAGES[0];
+  const stageProfile = StoryLogicManager.getStageProfile(selectedStage.id, currentAlignment, lang);
+  const assignedBaseHero = HEROES.find(h => h.id === stageProfile.heroConfig.heroRenderId) || HEROES[0];
 
   const skillBonuses = SkillSystem.getAggregatedBonuses(progress);
 
-  let weaponBonusDamage = 0;
-  if (selectedHero.id === 'rostam') {
-    const lvl = progress.weaponLevels['weapon_mace'] || 1;
-    weaponBonusDamage = lvl * 8 + skillBonuses.bonusAttack;
-  } else if (selectedHero.id === 'sohrab') {
-    const lvl = progress.weaponLevels['weapon_scimitar'] || 1;
-    weaponBonusDamage = lvl * 7 + skillBonuses.bonusAttack;
-  } else {
-    const lvl = progress.weaponLevels['weapon_bow'] || 1;
-    weaponBonusDamage = lvl * 6 + skillBonuses.bonusAttack;
-  }
+  // Shared weapon upgrade bonus across all stage-assigned characters
+  const maceLvl = progress.weaponLevels['weapon_mace'] || 1;
+  const scimitarLvl = progress.weaponLevels['weapon_scimitar'] || 1;
+  const bowLvl = progress.weaponLevels['weapon_bow'] || 1;
+  const sharedWeaponLvl = Math.max(maceLvl, scimitarLvl, bowLvl);
+  const weaponBonusDamage = sharedWeaponLvl * 8 + skillBonuses.bonusAttack;
 
   const armorLvl = progress.weaponLevels['weapon_armor'] || 0;
   const armorDamageReduction = Math.min(0.65, armorLvl * 0.08 + skillBonuses.bonusDefense / 100);
@@ -395,11 +403,20 @@ export default function App() {
   const hasSimurghFeather = !!skillBonuses.activePerks['simurgh_revive'];
 
   const battleHero = {
-    ...selectedHero,
-    maxHp: selectedHero.maxHp + skillBonuses.bonusHp,
+    ...assignedBaseHero,
+    maxHp: assignedBaseHero.maxHp + skillBonuses.bonusHp,
+    color: stageProfile.heroConfig.color,
+    accentColor: stageProfile.heroConfig.accentColor,
+    customDisplayName: stageProfile.heroConfig.heroName,
+    customTitle: stageProfile.heroConfig.heroTitle,
+    customWeaponName: stageProfile.heroConfig.weaponName,
+    customSpecialName: stageProfile.heroConfig.specialName,
   };
 
   const isRtl = lang === 'fa' || lang === 'ar';
+  const activeNaqqalProfile = activeNaqqalEpisode
+    ? StoryLogicManager.getStageProfile(activeNaqqalEpisode.id, currentAlignment, lang)
+    : null;
 
   return (
     <div
@@ -408,8 +425,10 @@ export default function App() {
     >
       {view === 'TITLE' && (
         <TitleScreen
-          selectedHeroId={progress.selectedHero}
+          selectedHeroId={assignedBaseHero.id}
           onSelectHero={handleSelectHero}
+          alignment={currentAlignment}
+          onSelectAlignment={handleSelectAlignment}
           selectedStageId={progress.currentStage}
           onSelectStage={handleSelectStage}
           graphicsTier={graphicsTier}
@@ -436,7 +455,10 @@ export default function App() {
 
       {view === 'DUEL' && (
         <DuelArena
-          playerHeroId={progress.selectedHero}
+          playerHeroId={assignedBaseHero.id}
+          playerHeroRenderId={stageProfile.heroConfig.heroRenderId}
+          playerCustomName={stageProfile.heroConfig.heroName}
+          playerCustomTitle={stageProfile.heroConfig.heroTitle}
           graphicsTier={graphicsTier}
           lang={lang}
           initialOpponentId={duelOpponentId}
@@ -459,6 +481,7 @@ export default function App() {
         <GameCanvas
           hero={battleHero}
           stage={selectedStage}
+          alignment={currentAlignment}
           graphicsTier={graphicsTier}
           onSelectGraphicsTier={handleSelectGraphicsTier}
           weaponBonusDamage={weaponBonusDamage}
@@ -480,35 +503,42 @@ export default function App() {
       {/* Victory Screen Modal */}
       {view === 'VICTORY' && (
         <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 select-none">
-          <div className="bg-[#0b101e] border-2 border-amber-500/80 rounded-2xl max-w-md w-full p-6 text-center shadow-2xl flex flex-col items-center gap-4 animate-gold-pulse">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-4xl shadow-xl">
+          <ManuscriptFrame
+            variant="lapis"
+            showSarloh={true}
+            sarlohTitle={t.victory}
+            sarlohSubtitle={`${stageProfile.chapterTitle} — ${t.conquered_label}!`}
+            className="max-w-md w-full text-center"
+            contentClassName="p-6 flex flex-col items-center gap-4"
+          >
+            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-3xl shadow-xl border-2 border-yellow-200">
               🏆
             </div>
 
             <div>
-              <h2 className="text-2xl font-black text-amber-300">
+              <h2 className="text-xl md:text-2xl font-black text-amber-300 nastaliq-title">
                 {t.victory}
               </h2>
-              <p className="text-xs text-slate-300 mt-1">
-                {t[selectedStage.nameKey]} با سرافرازی فتح شد!
+              <p className="text-xs text-amber-100/80 mt-1">
+                {stageProfile.chapterTitle} — {t.conquered_label}!
               </p>
             </div>
 
-            <div className="w-full bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex justify-around">
+            <div className="w-full damascus-surface border border-amber-500/40 rounded-xl p-4 flex justify-around">
               <div className="text-center">
-                <span className="text-[11px] text-slate-400 block">{t.gold}</span>
+                <span className="text-[11px] text-amber-200/75 block">{t.gold}</span>
                 <span className="text-lg font-bold text-amber-400 font-mono tabular-nums">
                   +{lastRunStats.gold} 🪙
                 </span>
               </div>
-              <div className="text-center border-x border-slate-800 px-4">
-                <span className="text-[11px] text-slate-400 block">{t.gems}</span>
+              <div className="text-center border-x border-amber-500/25 px-4">
+                <span className="text-[11px] text-amber-200/75 block">{t.gems}</span>
                 <span className="text-lg font-bold text-sky-400 font-mono tabular-nums">
                   +{lastRunStats.gems} 💎
                 </span>
               </div>
               <div className="text-center">
-                <span className="text-[11px] text-slate-400 block">{t.score}</span>
+                <span className="text-[11px] text-amber-200/75 block">{t.score}</span>
                 <span className="text-lg font-bold text-emerald-400 font-mono tabular-nums">
                   {lastRunStats.score}
                 </span>
@@ -524,7 +554,7 @@ export default function App() {
                 className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-slate-950 font-black text-xs md:text-sm rounded-xl transition-transform active:scale-98 cursor-pointer shadow-md flex items-center justify-center gap-2"
               >
                 <Video className="w-4 h-4 fill-slate-950" />
-                <span>دو برابر کردن پاداش با تماشای تبلیغ (+۵۰۰ طلا)</span>
+                <span>{t.watch_ad_reward}</span>
               </button>
 
               {progress.currentStage < 7 && (
@@ -533,44 +563,53 @@ export default function App() {
                     setProgress(prev => ({ ...prev, currentStage: prev.currentStage + 1 }));
                     setShowStoryPrologue(true);
                   }}
-                  className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs md:text-sm rounded-xl transition-transform active:scale-98 cursor-pointer shadow-md flex items-center justify-center gap-2"
+                  className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 text-slate-950 font-black text-xs md:text-sm rounded-xl transition-transform active:scale-98 cursor-pointer shadow-md flex items-center justify-center gap-2 border border-amber-200"
                 >
-                  <span>فصل بعد: {t[STAGES[progress.currentStage].nameKey]}</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>
+                    {t.next_stage}: {StoryLogicManager.getStageProfile(progress.currentStage + 1, currentAlignment, lang).chapterTitle}
+                  </span>
+                  <ArrowRight className={`w-4 h-4 ${isRtl ? 'rotate-180' : ''}`} />
                 </button>
               )}
 
               <button
                 onClick={() => setView('TITLE')}
-                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 border border-amber-500/40 text-amber-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
               >
                 {t.return_to_menu}
               </button>
             </div>
-          </div>
+          </ManuscriptFrame>
         </div>
       )}
 
       {/* Defeat Screen Modal */}
       {view === 'GAME_OVER' && (
         <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 select-none">
-          <div className="bg-[#0b101e] border-2 border-red-500/60 rounded-2xl max-w-md w-full p-6 text-center shadow-2xl flex flex-col items-center gap-4">
-            <div className="w-20 h-20 rounded-full bg-red-950/80 border-2 border-red-500/50 flex items-center justify-center text-4xl shadow-xl">
-              <Skull className="w-10 h-10 text-red-400" />
+          <ManuscriptFrame
+            variant="crimson"
+            showSarloh={true}
+            sarlohTitle={t.defeat}
+            sarlohSubtitle={stageProfile.chapterTitle}
+            className="max-w-md w-full text-center"
+            contentClassName="p-6 flex flex-col items-center gap-4"
+          >
+            <div className="w-16 h-16 rounded-full bg-red-950/80 border-2 border-red-500/60 flex items-center justify-center text-3xl shadow-xl">
+              <Skull className="w-9 h-9 text-red-400" />
             </div>
 
             <div>
-              <h2 className="text-2xl font-black text-red-400">
+              <h2 className="text-xl md:text-2xl font-black text-red-400 nastaliq-title">
                 {t.defeat}
               </h2>
               <p className="text-xs text-slate-300 mt-1">
-                دلاوران شاهنامه هرگز تسلیم نمی‌شوند؛ بار دگر به میدان بازگرد!
+                {t.defeat_encouragement}
               </p>
             </div>
 
-            <div className="w-full bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex justify-around text-xs">
+            <div className="w-full damascus-surface border border-rose-500/40 rounded-xl p-3 flex justify-around text-xs">
               <div>
-                <span className="text-slate-400 block">{t.gold} غنیمت:</span>
+                <span className="text-slate-400 block">{t.gold}:</span>
                 <span className="text-amber-400 font-mono font-bold">+{lastRunStats.gold} 🪙</span>
               </div>
               <div>
@@ -585,7 +624,7 @@ export default function App() {
                   setAdForRespawn(true);
                   setShowRewardedAd(true);
                 }}
-                className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs md:text-sm rounded-xl transition-transform active:scale-98 cursor-pointer shadow-lg flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 text-slate-950 font-black text-xs md:text-sm rounded-xl transition-transform active:scale-98 cursor-pointer shadow-lg flex items-center justify-center gap-2 border border-amber-200"
               >
                 <Sparkles className="w-4 h-4 fill-slate-950" />
                 <span>{t.respawn_with_ad}</span>
@@ -593,7 +632,7 @@ export default function App() {
 
               <button
                 onClick={() => setView('PLAYING')}
-                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 border border-amber-500/40 text-amber-200 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>{t.restart_stage}</span>
@@ -601,12 +640,12 @@ export default function App() {
 
               <button
                 onClick={() => setView('TITLE')}
-                className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-slate-400 font-medium text-xs rounded-xl transition-colors cursor-pointer"
+                className="w-full py-2.5 px-4 bg-slate-950 hover:bg-slate-900 text-slate-400 font-medium text-xs rounded-xl transition-colors cursor-pointer"
               >
                 {t.return_to_menu}
               </button>
             </div>
-          </div>
+          </ManuscriptFrame>
         </div>
       )}
 
@@ -696,8 +735,7 @@ export default function App() {
       {showStoryPrologue && (
         <StoryPrologueModal
           stage={selectedStage}
-          selectedHeroId={progress.selectedHero}
-          onSelectHero={handleSelectHero}
+          alignment={currentAlignment}
           lang={lang}
           onClose={() => setShowStoryPrologue(false)}
           onStartBattle={() => {
@@ -714,6 +752,7 @@ export default function App() {
           highScore={progress.highScore}
           completedEpisodes={progress.completedStages}
           lang={lang}
+          alignment={currentAlignment}
           onSelectEpisode={(ep) => {
             setProgress(prev => ({
               ...prev,
@@ -741,37 +780,46 @@ export default function App() {
       {showSkillTree && (
         <SkillTreeModal
           progress={progress}
+          lang={lang}
           onUpdateProgress={(newProgress) => setProgress(newProgress)}
           onClose={() => setShowSkillTree(false)}
         />
       )}
 
       {/* Active Naqqal Perde-khani Recitation Modal */}
-      {activeNaqqalEpisode && (
+      {activeNaqqalEpisode && activeNaqqalProfile && (
         <div className="fixed inset-0 z-50 bg-[#060913]/95 backdrop-blur-md flex items-center justify-center p-4 select-none">
-          <div className="w-full max-w-2xl bg-[#0c111e] border-2 border-amber-500/80 rounded-3xl p-5 shadow-2xl flex flex-col gap-4 relative animate-fade-in">
+          <ManuscriptFrame
+            variant="lapis"
+            showSarloh={true}
+            sarlohTitle={activeNaqqalProfile.chapterTitle}
+            sarlohSubtitle={`${t.chapter_label} ${activeNaqqalEpisode.khanNumber} / 7`}
+            className="w-full max-w-2xl"
+            contentClassName="p-5 flex flex-col gap-4"
+          >
             <div className="flex items-center justify-between border-b border-amber-500/30 pb-3">
               <div>
                 <span className="text-[10px] font-mono font-bold text-amber-400">
-                  خوان {activeNaqqalEpisode.khanNumber} از هفت‌خان رستم
+                  {t.chapter_label} {activeNaqqalEpisode.khanNumber} / 7
                 </span>
-                <h3 className="text-base font-black text-amber-200">
-                  {activeNaqqalEpisode.titleFa}
+                <h3 className="text-base font-black text-amber-200 nastaliq-title">
+                  {activeNaqqalProfile.chapterTitle}
                 </h3>
               </div>
               <button
                 onClick={() => setActiveNaqqalEpisode(null)}
-                className="w-8 h-8 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center justify-center cursor-pointer active:scale-95"
+                className="w-8 h-8 rounded-xl bg-slate-900 border border-amber-500/40 text-amber-200 hover:bg-amber-500/20 flex items-center justify-center cursor-pointer active:scale-95"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <NaqqalNarrator
-              title={activeNaqqalEpisode.titleFa}
-              couplet={activeNaqqalEpisode.couplet}
-              poet="حکیم ابوالقاسم فردوسی"
-              fullProse={activeNaqqalEpisode.narrativeFa}
+              title={activeNaqqalProfile.chapterTitle}
+              couplet={activeNaqqalProfile.prologueCouplet}
+              poet={activeNaqqalProfile.prologuePoet}
+              fullProse={activeNaqqalProfile.prologueProse}
+              lang={lang}
             />
 
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -786,12 +834,12 @@ export default function App() {
                   setShowEpisodes(false);
                   setView('PLAYING');
                 }}
-                className="py-2 px-4 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold text-xs rounded-xl shadow-lg cursor-pointer active:scale-95 transition-all"
+                className="py-2.5 px-5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg cursor-pointer active:scale-95 transition-all border border-amber-200"
               >
-                آغاز نبرد این خوان
+                {t.episodes_start_btn}
               </button>
             </div>
-          </div>
+          </ManuscriptFrame>
         </div>
       )}
     </div>

@@ -37,6 +37,8 @@ export interface EnemyRenderOptions {
   type: 'grunt' | 'archer' | 'div_soldier' | 'archer_turani' | 'flying_akvan' | 'boss' | string;
   stageId: number;
   heroId: string;
+  bossRenderId?: string;
+  alignment?: 'good' | 'evil';
   width: number;
   height: number;
   vx: number;
@@ -51,13 +53,13 @@ const INK_DARK = '#140b05'; // قلم‌گیری سیاه-قهوه‌ای سوخ
 
 export class QahvehKhanehRenderer {
   /**
-   * Renders a Pahlavan hero in authentic Qahveh-Khaneh style with bold contours,
-   * warm oil pigments, and exaggerated expressive facial features.
+   * Renders a Pahlavan hero or Dark Side Overlord in authentic Qahveh-Khaneh style
+   * with bold contours, warm oil pigments, and exaggerated expressive facial features.
    */
   public static renderHero(opts: HeroRenderOptions) {
     const {
       ctx,
-      heroId,
+      heroId: rawHeroId = 'rostam',
       facing,
       animFrame,
       vx,
@@ -74,8 +76,46 @@ export class QahvehKhanehRenderer {
       scale = 1.35,
     } = opts;
 
+    const heroId = typeof rawHeroId === 'string' && rawHeroId.length > 0 ? rawHeroId : 'rostam';
     const isHigh = graphicsTier === 'high' || graphicsTier === 'ultra';
     const isUltra = graphicsTier === 'ultra';
+
+    const isMoving = Math.abs(vx) > 12;
+    const stride = isMoving && isGrounded ? Math.sin(animFrame * 1.35) * 11 : 0;
+    const kneeBend = isMoving && isGrounded ? Math.abs(Math.cos(animFrame * 1.35)) * 3 : 0;
+    const idleBreath = !isMoving && isGrounded ? Math.sin(time * 3.2) * 1.5 : 0;
+    const bodyLean = isAttacking ? 0.15 : isMoving ? 0.07 : 0;
+
+    // Support Dark Side Overlords when played as the chapter's main character
+    if (heroId === 'zahhak' || heroId === 'div_sepid' || heroId.startsWith('warlord')) {
+      ctx.save();
+      if (facing === -1) {
+        ctx.scale(-1, 1);
+      }
+      ctx.translate(0, 26);
+      ctx.scale(scale * 0.76, scale * 0.76);
+      ctx.translate(0, -24);
+      ctx.rotate(bodyLean);
+
+      if (heroId === 'zahhak') {
+        this.drawBossZahhak(ctx, stride, idleBreath, isAttacking, isHit, time);
+      } else if (heroId === 'div_sepid') {
+        this.drawBossDivSepid(ctx, stride, idleBreath, isAttacking, isHit, time);
+      } else {
+        const wStage = heroId === 'warlord_1' ? 1 : heroId === 'warlord_5' ? 5 : 7;
+        this.drawBossWarlord(ctx, wStage, stride, idleBreath, isAttacking, isHit, time);
+      }
+
+      if (isParrying) {
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.85)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(10, -8, 28, -Math.PI * 0.5, Math.PI * 0.5);
+        ctx.stroke();
+      }
+      ctx.restore();
+      return;
+    }
 
     ctx.save();
 
@@ -87,12 +127,6 @@ export class QahvehKhanehRenderer {
     ctx.translate(0, 26);
     ctx.scale(scale, scale);
     ctx.translate(0, -26);
-
-    const isMoving = Math.abs(vx) > 12;
-    const stride = isMoving && isGrounded ? Math.sin(animFrame * 1.35) * 11 : 0;
-    const kneeBend = isMoving && isGrounded ? Math.abs(Math.cos(animFrame * 1.35)) * 3 : 0;
-    const idleBreath = !isMoving && isGrounded ? Math.sin(time * 3.2) * 1.5 : 0;
-    const bodyLean = isAttacking ? 0.15 : isMoving ? 0.07 : 0;
 
     ctx.rotate(bodyLean);
 
@@ -185,7 +219,7 @@ export class QahvehKhanehRenderer {
 
   /**
    * Renders enemies and bosses filtered by StoryLogicManager so that every stage
-   * and hero combination displays historically coherent opponents in Qahveh-Khaneh style.
+   * and alignment combination displays historically coherent opponents in Qahveh-Khaneh style.
    */
   public static renderEnemy(opts: EnemyRenderOptions) {
     const {
@@ -193,6 +227,8 @@ export class QahvehKhanehRenderer {
       type,
       stageId,
       heroId,
+      bossRenderId,
+      alignment = 'good',
       vx,
       isAttacking,
       isHit,
@@ -206,11 +242,31 @@ export class QahvehKhanehRenderer {
     const breath = Math.sin(time * 3.5) * 1.8;
 
     if (isBoss) {
-      if (stageId === 4) {
-        const bossHeroId = heroId === 'sohrab' ? 'gordafarid' : 'sohrab';
+      const targetBossId =
+        bossRenderId ||
+        (alignment === 'evil'
+          ? stageId === 4
+            ? 'gordafarid'
+            : 'rostam'
+          : stageId === 2
+            ? 'zahhak'
+            : stageId === 3
+              ? 'div_sepid'
+              : stageId === 4
+                ? 'sohrab'
+                : stageId === 6
+                  ? 'esfandiar'
+                  : `warlord_${stageId}`);
+
+      if (
+        targetBossId === 'rostam' ||
+        targetBossId === 'sohrab' ||
+        targetBossId === 'gordafarid' ||
+        targetBossId === 'esfandiar'
+      ) {
         this.renderHero({
           ctx,
-          heroId: bossHeroId,
+          heroId: targetBossId,
           facing: 1,
           animFrame,
           vx,
@@ -218,43 +274,22 @@ export class QahvehKhanehRenderer {
           isGrounded: true,
           isAttacking,
           attackType: 'heavy',
-          attackTimer: isAttacking ? (time % 0.5) : 0,
+          attackTimer: isAttacking ? time % 0.5 : 0,
           isHit,
-          rageRatio: 0.7,
+          rageRatio: 0.85,
           graphicsTier,
           time,
-          scale: 1.44,
+          scale: 1.45,
         });
         return;
       }
 
-      if (stageId === 6) {
-        this.renderHero({
-          ctx,
-          heroId: 'esfandiar',
-          facing: 1,
-          animFrame,
-          vx,
-          vy: 0,
-          isGrounded: true,
-          isAttacking,
-          attackType: 'heavy',
-          attackTimer: isAttacking ? (time % 0.5) : 0,
-          isHit,
-          rageRatio: 0.9,
-          graphicsTier,
-          time,
-          scale: 1.48,
-        });
-        return;
-      }
-
-      if (stageId === 2) {
+      if (targetBossId === 'zahhak') {
         this.drawBossZahhak(ctx, stride, breath, isAttacking, isHit, time);
         return;
       }
 
-      if (stageId === 3) {
+      if (targetBossId === 'div_sepid') {
         this.drawBossDivSepid(ctx, stride, breath, isAttacking, isHit, time);
         return;
       }
@@ -263,20 +298,17 @@ export class QahvehKhanehRenderer {
       return;
     }
 
-    // Consult StoryLogicManager for stage + hero coherent enemy faction
-    // Stages 1, 2, 3: Mazandaran Demons & Zahhak's Serpent Cultists
-    // Stage 4: If player is Sohrab -> Iranian Fortress Sentinels; if Rostam/Gordafarid -> Turanian Raiders
-    // Stage 6: Kayanian Royal Immortal Guards
-    // Stages 5, 7: Turanian Heavy Raiders
+    // Regular stage enemies (vanguard) based on alignment & stage
+    const isFightingIranianArmy = alignment === 'evil' || (stageId === 4 && heroId === 'sohrab') || stageId === 6;
+
     if (type === 'flying_akvan') {
-      const isHumanWarStage = stageId >= 4;
+      const isHumanWarStage = isFightingIranianArmy || stageId >= 4;
       this.drawAerialThreat(ctx, breath, isHit, time, isHumanWarStage);
       return;
     }
 
     if (type === 'archer' || type === 'archer_turani') {
-      const isIranianDefender = (stageId === 4 && heroId === 'sohrab') || stageId === 6;
-      const isDemonStage = stageId <= 3;
+      const isDemonStage = !isFightingIranianArmy && stageId <= 3;
       this.drawQahvehKhanehArcher(
         ctx,
         stride,
@@ -284,16 +316,16 @@ export class QahvehKhanehRenderer {
         isAttacking,
         isHit,
         time,
-        isIranianDefender ? 'iranian' : isDemonStage ? 'demon' : 'turanian'
+        isFightingIranianArmy ? 'iranian' : isDemonStage ? 'demon' : 'turanian'
       );
       return;
     }
 
     // Melee Vanguard ('grunt' | 'div_soldier')
-    if (stageId <= 3) {
-      this.drawMazandaranDivSoldier(ctx, stride, breath, isAttacking, isHit, time, stageId === 2);
-    } else if ((stageId === 4 && heroId === 'sohrab') || stageId === 6) {
+    if (isFightingIranianArmy) {
       this.drawIranianFortressSentinel(ctx, stride, breath, isAttacking, isHit, time, stageId === 6);
+    } else if (stageId <= 3) {
+      this.drawMazandaranDivSoldier(ctx, stride, breath, isAttacking, isHit, time, stageId === 2);
     } else {
       this.drawTuranianSteppeRaider(ctx, stride, breath, isAttacking, isHit, time);
     }
@@ -609,34 +641,38 @@ export class QahvehKhanehRenderer {
         ctx.fill();
       }
 
-      // Chahar-Aineh (چهارآینه زرکوب سینه)
-      ctx.fillStyle = '#d97706';
-      ctx.strokeStyle = INK_DARK;
+      // Chahar-Aineh (چهارآینه فولاد جوهرنگار و زرکوب سینه)
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#fbbf24';
       ctx.lineWidth = 1.8;
       ctx.beginPath();
-      ctx.roundRect(-8.5, topY + 4, 17, 12, 2);
+      ctx.roundRect(-9, topY + 3.5, 18, 13, 2);
       ctx.fill();
       ctx.stroke();
 
-      // Inner crimson jewel on breastplate
-      ctx.fillStyle = '#b91c1c';
+      // Engraved gold Eslimi cross-plates on Chahar-Aineh
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 1.1;
+      ctx.strokeRect(-6.5, topY + 5.5, 13, 9);
+
+      // Inner crimson ruby boss on breastplate
+      ctx.fillStyle = '#dc2626';
       ctx.beginPath();
-      ctx.arc(0, topY + 10, 3, 0, Math.PI * 2);
+      ctx.arc(0, topY + 10, 3.2, 0, Math.PI * 2);
       ctx.fill();
     } else if (heroId === 'sohrab') {
-      if (isUltra) {
-        ctx.strokeStyle = '#fef08a';
-        ctx.lineWidth = 1.0;
-        for (let row = topY + 4; row < botY - 2; row += 4) {
-          for (let col = -sw + 5; col <= sw - 5; col += 4.5) {
-            ctx.beginPath();
-            ctx.arc(col, row, 2.1, 0, Math.PI);
-            ctx.stroke();
-          }
+      // Lamellar Jawshan Scale Armor (جوشن پولک‌دار شاهنامه با جزییات کامل)
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 1.05;
+      for (let row = topY + 3.5; row < botY - 2; row += 3.8) {
+        for (let col = -sw + 4.5; col <= sw - 4.5; col += 4.2) {
+          ctx.beginPath();
+          ctx.arc(col, row, 2.0, 0, Math.PI);
+          ctx.stroke();
         }
       }
 
-      // Golden Sun-Medallion on Sohrab's Chest
+      // Golden Sun-Medallion (شمسه زرین چهارآینه سهراب)
       ctx.fillStyle = '#fbbf24';
       ctx.strokeStyle = INK_DARK;
       ctx.lineWidth = 1.6;
@@ -644,8 +680,21 @@ export class QahvehKhanehRenderer {
       ctx.arc(0, topY + 10, 6.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
+      ctx.fillStyle = '#0d9488';
+      ctx.beginPath();
+      ctx.arc(0, topY + 10, 2.6, 0, Math.PI * 2);
+      ctx.fill();
     } else {
-      // Golden Tazhib Rosette on Breastplate
+      // Lamellar Jawshan rows + Golden Tazhib Rosette on Breastplate
+      ctx.strokeStyle = 'rgba(253, 224, 71, 0.55)';
+      ctx.lineWidth = 0.9;
+      for (let row = topY + 4; row < botY - 2; row += 4) {
+        ctx.beginPath();
+        ctx.moveTo(-sw + 4, row);
+        ctx.lineTo(sw - 4, row);
+        ctx.stroke();
+      }
+
       ctx.fillStyle = '#fbbf24';
       ctx.strokeStyle = INK_DARK;
       ctx.lineWidth = 1.6;
@@ -1277,13 +1326,23 @@ export class QahvehKhanehRenderer {
       ctx.stroke();
     }
 
-    if (isAttacking && isUltra) {
+    if (isAttacking) {
+      // Multi-layered Damascus Watered-Steel & Crimson-Gold Slash Arc (قوس برش فولاد دمشقی و جرقه نبرد)
+      ctx.save();
       ctx.strokeStyle =
-        attackType === 'heavy' ? 'rgba(185, 28, 28, 0.82)' : 'rgba(217, 119, 6, 0.8)';
-      ctx.lineWidth = attackType === 'heavy' ? 6.5 : 4.5;
+        attackType === 'heavy' ? 'rgba(220, 38, 38, 0.88)' : 'rgba(245, 158, 11, 0.85)';
+      ctx.lineWidth = attackType === 'heavy' ? 7.5 : 5.2;
       ctx.beginPath();
-      ctx.arc(0, -25, 36, -Math.PI * 0.75, Math.PI * 0.25);
+      ctx.arc(0, -25, 38, -Math.PI * 0.78, Math.PI * 0.28);
       ctx.stroke();
+
+      // Razor-sharp Damascus white-gold inner edge
+      ctx.strokeStyle = '#fef9c3';
+      ctx.lineWidth = 2.0;
+      ctx.beginPath();
+      ctx.arc(0, -25, 40, -Math.PI * 0.72, Math.PI * 0.22);
+      ctx.stroke();
+      ctx.restore();
     }
 
     ctx.restore();
