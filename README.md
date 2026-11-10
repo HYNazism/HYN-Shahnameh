@@ -1,16 +1,20 @@
-# رزمنامه | Razmnameh: Legends of Shahnameh
 
-یک بازی اکشن پلتفرمر دوبعدی با الهام از شاهنامهٔ فردوسی. این پروژه با React 19، TypeScript و Vite ساخته شده و برای اجرا در مرورگرهای دسکتاپ و موبایل طراحی شده است. کیفیت و سازگاری ممکن است بسته به دستگاه و مرورگر متفاوت باشد.
 
-## دریافت و انتشار
+---
 
-- [انتشارها و فایل‌های موجود](https://github.com/HYNazism/HYN-Shahnameh/releases)
-- شاخهٔ اصلی پروژه در حال حاضر نسخهٔ `2.7.1` را در `package.json` اعلام می‌کند.
-- گردش‌کار انتشار فعلی فایل‌های ZIP و checksum می‌سازد. ZIPهای موجود بسته‌های وب/اسکریپت‌های راه‌انداز هستند؛ فایل‌های ZIP را با نصاب بومی `.exe` یا `.apk` اشتباه نگیرید. برای انتشار مستقیم این فایل‌های اجرایی باید ساخت بومی هر پلتفرم به گردش‌کار اضافه و خروجی آن جداگانه بررسی شود.
+## English
 
-## اجرای محلی
+Razmnameh is a 2D action-platformer inspired by Ferdowsi's Shahnameh. It is built with React 19, TypeScript, and Vite, and is intended to run in desktop and mobile browsers. Compatibility and performance vary by device and browser.
 
-پیش‌نیاز: Node.js و npm.
+### Downloads and release status
+
+- [GitHub Releases](https://github.com/HYNazism/HYN-Shahnameh/releases)
+- The current `package.json` version is `2.7.1`.
+- The release workflow currently creates ZIP archives and checksums. Existing ZIPs contain web assets and/or launcher/build scripts; they are not native `.exe` installers or installable `.apk` files. Native packages must be built and verified separately before being advertised as direct downloads.
+
+### Local development
+
+Requirements: Node.js and npm.
 
 ```bash
 git clone https://github.com/HYNazism/HYN-Shahnameh.git
@@ -19,25 +23,23 @@ npm install --legacy-peer-deps
 npm run dev
 ```
 
-Vite سرور توسعه را روی پورت `3000` اجرا می‌کند. برای بررسی TypeScript و ساخت وب:
+Vite starts the development server on port `3000`. To type-check and build the web app:
 
 ```bash
 npm run lint
 npm run build
 ```
 
-برای ساخت ZIPهای انتشار محلی:
+To create the configured local release archives:
 
 ```bash
 npm run build:releases
 ```
 
-این دستور بسته‌بندی‌های تعریف‌شده در `scripts/build-releases.js` را می‌سازد؛ به‌تنهایی تضمین‌کنندهٔ فایل نصبی بومی برای همهٔ سیستم‌عامل‌ها نیست.
+This runs the packaging defined in `scripts/build-releases.js`; it does not by itself guarantee native installers for every operating system.
 
-## فناوری‌ها
+### Technologies and license
 
-React 19 · TypeScript · Vite 8 · Tailwind CSS 4 · Capacitor · Electron
+React 19 · TypeScript · Vite 8 · Tailwind CSS 4 · Capacitor · Electron.
 
-## مجوز
-
-در حال حاضر فایل `LICENSE` در مخزن وجود ندارد؛ بنابراین مجوز استفادهٔ مجدد یا توزیع مجددی در این مخزن اعلام نشده است. برای تعیین مجوز، مالک پروژه باید یک فایل مجوز اضافه کند.
+There is currently no `LICENSE` file in the repository, so no reuse or redistribution license has been declared. The project owner should add a license file to specify usage rights.
