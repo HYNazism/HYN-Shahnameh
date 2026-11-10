@@ -6,6 +6,10 @@ on:
       - main
     tags:
       - 'v*'
+    paths-ignore:
+      - 'README.md'
+      - 'RELEASE_NOTES.md'
+      - '.github/workflows/release.yml'
   workflow_dispatch:
     inputs:
       bump_type:
