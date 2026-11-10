@@ -46,7 +46,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Code Verification & Typecheck
         run: npm run lint
