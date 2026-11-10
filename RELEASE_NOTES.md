@@ -1,33 +1,27 @@
 # Razmnameh | رزم‌نامه
 
-## v1.0.6 — Verified release assets / فایل‌های انتشار بررسی‌شده
+## English
+This release publishes six platform packages as ZIP archives. Replace <tag> in each filename pattern with the GitHub release tag shown on this page:
 
-The published GitHub release is [`v1.0.6`](https://github.com/HYNazism/HYN-Shahnameh/releases/tag/v1.0.6). Its attached assets are six platform ZIP archives plus `release-manifest.json` and `sha256sums.txt`:
+- Windows x64 executable package: shahnameh-<tag>-windows-x64-executable.zip
+- macOS universal app package: shahnameh-<tag>-macos-universal-app.zip
+- Linux x64 executable package: shahnameh-<tag>-linux-x64-executable.zip
+- Android APK bundle: shahnameh-<tag>-android-apk-bundle.zip
+- iOS/iPadOS bundle: shahnameh-<tag>-ios-ipados-bundle.zip
+- Web PWA bundle: shahnameh-<tag>-web-pwa.zip
+- release-manifest.json and sha256sums.txt provide artifact metadata and checksums.
 
-- `shahnameh-v1.0.6-windows-x64-executable.zip`
-- `shahnameh-v1.0.6-macos-universal-app.zip`
-- `shahnameh-v1.0.6-linux-x64-executable.zip`
-- `shahnameh-v1.0.6-android-apk-bundle.zip`
-- `shahnameh-v1.0.6-ios-ipados-bundle.zip`
-- `shahnameh-v1.0.6-web-pwa.zip`
-
-These downloads are ZIP archives. No standalone `.exe`, `.apk`, `.dmg`, `.AppImage`, or `.ipa` is attached directly to this release. Do not treat an archive as a verified installer or claim direct installation without checking its contents and testing it on the target device.
-
-The GitHub release tag (`v1.0.6`) and the current application version in `package.json` (`2.7.1`) are different version schemes.
-
----
+These are ZIP containers, not direct installer files. The app version in package metadata (2.7.1) is separate from the GitHub release tag.
 
 ## فارسی
+این انتشار، بسته‌های شش محیط را به‌صورت آرشیو ZIP منتشر می‌کند. در الگوی نام هر فایل، <tag> را با برچسب انتشار GitHub همین صفحه جایگزین کنید:
 
-انتشار منتشرشده در GitHub با تگ [`v1.0.6`](https://github.com/HYNazism/HYN-Shahnameh/releases/tag/v1.0.6) در دسترس است. دارایی‌های پیوست‌شده شامل شش آرشیو ZIP چندسکویی و دو فایل `release-manifest.json` و `sha256sums.txt` هستند:
+- بسته اجرایی Windows x64: shahnameh-<tag>-windows-x64-executable.zip
+- بسته برنامه macOS universal: shahnameh-<tag>-macos-universal-app.zip
+- بسته اجرایی Linux x64: shahnameh-<tag>-linux-x64-executable.zip
+- بسته APK اندروید: shahnameh-<tag>-android-apk-bundle.zip
+- بسته iOS/iPadOS: shahnameh-<tag>-ios-ipados-bundle.zip
+- بسته وب PWA: shahnameh-<tag>-web-pwa.zip
+- فایل‌های release-manifest.json و sha256sums.txt فراداده و checksum فایل‌ها را ارائه می‌کنند.
 
-- `shahnameh-v1.0.6-windows-x64-executable.zip`
-- `shahnameh-v1.0.6-macos-universal-app.zip`
-- `shahnameh-v1.0.6-linux-x64-executable.zip`
-- `shahnameh-v1.0.6-android-apk-bundle.zip`
-- `shahnameh-v1.0.6-ios-ipados-bundle.zip`
-- `shahnameh-v1.0.6-web-pwa.zip`
-
-فایل‌های قابل‌دریافت آرشیو ZIP هستند؛ فایل مستقل `.exe`، `.apk`، `.dmg`، `.AppImage` یا `.ipa` مستقیماً به این انتشار پیوست نشده است. آرشیو را نصاب تأییدشده یا قابل‌نصب مستقیم معرفی نکنید، مگر آنکه محتویات آن بررسی و روی دستگاه مقصد آزمایش شده باشد.
-
-تگ انتشار GitHub (`v1.0.6`) با نسخهٔ فعلی برنامه در `package.json` (`2.7.1`) تفاوت دارد؛ این دو از روش‌های شماره‌گذاری جداگانه استفاده می‌کنند.
+این فایل‌ها آرشیو ZIP هستند، نه نصاب مستقل. نسخه برنامه در فراداده بسته (2.7.1) با برچسب انتشار GitHub متفاوت است.
