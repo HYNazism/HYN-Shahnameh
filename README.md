@@ -1,8 +1,8 @@
 ## Verified release status / وضعیت واقعی انتشار
 
-The published [`v1.0.6` release](https://github.com/HYNazism/HYN-Shahnameh/releases/tag/v1.0.6) contains six platform `.zip` archives (Windows x64, macOS universal app, Linux x64, Android APK bundle, iOS/iPadOS bundle, and Web/PWA), plus a release manifest and SHA-256 checksums. The downloadable release assets are ZIP archives; no standalone `.exe`, `.apk`, `.dmg`, `.AppImage`, or `.ipa` is attached directly. The current `package.json` version is `2.7.1`, while the automated GitHub release tag is `v1.0.6`; these version schemes are separate.
+The latest published [`v1.0.11` release](https://github.com/HYNazism/HYN-Shahnameh/releases/tag/v1.0.11) contains six platform ZIP archives for Windows x64, macOS universal, Linux x64, Android, iOS/iPadOS, and Web/PWA, plus a release manifest and SHA-256 checksums. These are ZIP containers, not direct installer files; no standalone .exe, .apk, .dmg, .AppImage, or .ipa is attached. The current package.json version is 2.7.1, separate from the automated GitHub release tag v1.0.11.
 
-انتشار فعلی [`v1.0.6`](https://github.com/HYNazism/HYN-Shahnameh/releases/tag/v1.0.6) شامل شش آرشیو `.zip` برای Windows x64، برنامهٔ Universal مک، Linux x64، بستهٔ ساخت APK اندروید، بستهٔ iOS/iPadOS و وب/PWA به‌همراه مانیفست انتشار و checksumهای SHA-256 است. فایل‌های قابل‌دانلود انتشار ZIP هستند؛ فایل مستقل `.exe`، `.apk`، `.dmg`، `.AppImage` یا `.ipa` مستقیماً پیوست نشده است. نسخهٔ فعلی `package.json` برابر `2.7.1` است، اما تگ خودکار انتشار GitHub برابر `v1.0.6` است؛ این دو شیوهٔ شماره‌گذاری جدا هستند.
+انتشار جدید [`v1.0.11`](https://github.com/HYNazism/HYN-Shahnameh/releases/tag/v1.0.11) شامل شش آرشیو ZIP برای Windows x64، macOS universal، Linux x64، Android، iOS/iPadOS و وب/PWA به‌همراه مانیفست و checksumهای SHA-256 است. این‌ها آرشیو هستند، نه فایل نصب مستقل؛ فایل .exe، .apk، .dmg، .AppImage یا .ipa مستقیماً پیوست نشده است. نسخه package.json برابر 2.7.1 و جدا از برچسب انتشار خودکار v1.0.11 است.
 
 ---
 
